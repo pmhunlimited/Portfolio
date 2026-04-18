@@ -100,7 +100,7 @@ if (!isset($_SESSION['authorized'])) {
 
 // Handle CRUD Operations
 if (isset($_POST['update_settings'])) {
-    $keys = ['appTitle', 'heroSubtext', 'gemini_api_key', 'deepseek_api_key', 'pagespeed_api_key', 'admin_username', 'admin_password', 'authorized_email'];
+    $keys = ['appTitle', 'heroSubtext', 'gemini_api_key', 'deepseek_api_key', 'pagespeed_api_key', 'admin_username', 'admin_password', 'authorized_email', 'default_ai_agent'];
     foreach ($keys as $key) {
         if (isset($_POST[$key])) {
             $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
@@ -131,8 +131,52 @@ if (isset($_POST['save_project'])) {
     $thumbnail = $_POST['thumbnail_url'];
     $type = $_POST['type'];
 
-    $stmt = $pdo->prepare("INSERT INTO projects (title, slug, content, site_url, thumbnail_url, project_type) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$title, $slug, $content, $url, $thumbnail, $type]);
+    // Multi-Tier Fields
+    $lvl0_login_url = $_POST['lvl0_login_url'] ?? '';
+    $lvl0_user = $_POST['lvl0_user'] ?? '';
+    $lvl0_pass = $_POST['lvl0_pass'] ?? '';
+    $lvl0_direct_url = $_POST['lvl0_direct_url'] ?? '';
+    $lvl0_note = $_POST['lvl0_note'] ?? '';
+
+    $lvl1_login_url = $_POST['lvl1_login_url'] ?? '';
+    $lvl1_user = $_POST['lvl1_user'] ?? '';
+    $lvl1_pass = $_POST['lvl1_pass'] ?? '';
+    $lvl1_direct_url = $_POST['lvl1_direct_url'] ?? '';
+    $lvl1_note = $_POST['lvl1_note'] ?? '';
+
+    $lvl2_login_url = $_POST['lvl2_login_url'] ?? '';
+    $lvl2_user = $_POST['lvl2_user'] ?? '';
+    $lvl2_pass = $_POST['lvl2_pass'] ?? '';
+    $lvl2_direct_url = $_POST['lvl2_direct_url'] ?? '';
+    $lvl2_note = $_POST['lvl2_note'] ?? '';
+
+    $stmt = $pdo->prepare("INSERT INTO projects (title, slug, content, site_url, thumbnail_url, project_type, 
+        lvl0_login_url, lvl0_user, lvl0_pass, lvl0_direct_url, lvl0_note,
+        lvl1_login_url, lvl1_user, lvl1_pass, lvl1_direct_url, lvl1_note,
+        lvl2_login_url, lvl2_user, lvl2_pass, lvl2_direct_url, lvl2_note,
+        meta_title, wa_message
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    
+    $stmt->execute([
+        $title, $slug, $content, $url, $thumbnail, $type,
+        $lvl0_login_url, $lvl0_user, $lvl0_pass, $lvl0_direct_url, $lvl0_note,
+        $lvl1_login_url, $lvl1_user, $lvl1_pass, $lvl1_direct_url, $lvl1_note,
+        $lvl2_login_url, $lvl2_user, $lvl2_pass, $lvl2_direct_url, $lvl2_note,
+        $_POST['meta_title'] ?? '', $_POST['wa_message'] ?? ''
+    ]);
+    
+    $project_id = $pdo->lastInsertId();
+
+    // Handle Gallery (Up to 5)
+    if (isset($_POST['gallery_images']) && is_array($_POST['gallery_images'])) {
+        foreach ($_POST['gallery_images'] as $order => $media_url) {
+            if (!empty($media_url)) {
+                $stmt = $pdo->prepare("INSERT INTO project_gallery (project_id, media_url, sort_order) VALUES (?, ?, ?)");
+                $stmt->execute([$project_id, $media_url, $order]);
+            }
+        }
+    }
+
     header("Location: admin.php?success=1");
     exit;
 }
@@ -212,86 +256,169 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
             <a href="index.php" class="text-xs uppercase font-bold text-zinc-500 hover:text-white">Exit_Portal</a>
         </header>
 
-        <!-- Admin Tabs (System vs Projects) -->
-        <div class="flex gap-4 mb-8">
-            <button onclick="switchTab('projects')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-orange-600 text-black shadow-lg" data-tab="projects">Projects</button>
-            <button onclick="switchTab('system')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="system">System Settings</button>
+        <!-- Admin Tabs -->
+        <div class="flex gap-4 mb-8 overflow-x-auto pb-2">
+            <button onclick="switchTab('posting')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-orange-600 text-black shadow-lg" data-tab="posting">Posting_&_Projects</button>
+            <button onclick="switchTab('system')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="system">System_Configuration</button>
+            <button onclick="switchTab('api')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="api">API_&_AI_Nodes</button>
         </div>
 
-        <!-- Project Management Tab -->
-        <div id="tab-projects" class="space-y-12">
+        <!-- Posting Tab -->
+        <div id="tab-posting" class="space-y-12">
             <!-- Project Entry Form -->
             <div class="glass p-10 rounded-2xl space-y-8">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Node_Entry_Portal</h2>
+                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Node_Deployment</h2>
                     <div id="ai-loading" class="hidden flex items-center gap-2 text-[10px] text-orange-500 font-mono italic animate-pulse">
                         <svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        Agent_Decoding...
+                        <span id="ai-status">Agent_Decoding...</span>
                     </div>
                 </div>
 
                 <form method="POST" class="space-y-6" id="project-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Live URL</label>
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Live Destination URL</label>
                             <div class="flex gap-2">
                                 <input type="url" name="url" id="f-url" placeholder="https://..." class="flex-1 bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                                <?php
+                                $stmt_agent = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'default_ai_agent'");
+                                $stmt_agent->execute();
+                                $current_agent = $stmt_agent->fetchColumn() ?: 'gemini';
+                                ?>
                                 <button type="button" onclick="generateAI()" class="px-6 bg-orange-600 text-black font-black uppercase italic text-[10px] rounded-xl hover:brightness-110 active:scale-95 transition-all">
-                                    Magic_AI
+                                    <?php echo strtoupper($current_agent); ?>_SCAN_&_DEPLOY
                                 </button>
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Internal Name</label>
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Project Identifier (Title)</label>
                             <input type="text" name="title" id="f-title" placeholder="Project Name" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Node Cluster</label>
-                            <select name="type" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 uppercase font-black text-xs">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Node Cluster Type</label>
+                            <select name="type" id="f-type" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 uppercase font-black text-xs">
                                 <option value="web">Web_Interface</option>
                                 <option value="app">Mobile_App</option>
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Master_Visual_URL</label>
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Master_Thumbnail_URL</label>
                             <input type="text" name="thumbnail_url" id="f-thumb" placeholder="https://images..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <label class="text-[9px] uppercase font-bold text-zinc-500">Power_Pitch (Markdown)</label>
+                        <label class="text-[9px] uppercase font-bold text-zinc-500">Live Script / Content (Markdown)</label>
                         <textarea name="content" id="f-content" placeholder="System capabilities..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 h-40 font-mono text-sm"></textarea>
                     </div>
 
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-white/5">
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">SEO Metadata Tuning (Title)</label>
+                            <input type="text" name="meta_title" id="f-meta-title" placeholder="SEO Title" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 text-xs">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">WhatsApp Inquiry Payload</label>
+                            <input type="text" name="wa_message" id="f-wa" placeholder="WhatsApp Message" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 text-xs">
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="text-[9px] uppercase font-bold text-zinc-500">Gallery Integration (Max 5 Slots / Drag & Drop to Base64)</label>
+                        <div class="grid grid-cols-5 gap-3">
+                            <?php for($i=0; $i<5; $i++): ?>
+                            <div class="space-y-2">
+                                <div class="aspect-square glass rounded-xl flex flex-col items-center justify-center relative overflow-hidden group border-dashed border-white/10 hover:border-orange-500/50 transition-all cursor-pointer" 
+                                     onclick="document.getElementById('gallery-file-<?php echo $i; ?>').click()"
+                                     ondragover="event.preventDefault(); this.classList.add('border-orange-500')"
+                                     ondragleave="this.classList.remove('border-orange-500')"
+                                     ondrop="handleDrop(event, <?php echo $i; ?>)">
+                                    <input type="file" id="gallery-file-<?php echo $i; ?>" class="hidden" onchange="handleFile(this, <?php echo $i; ?>)">
+                                    <input type="hidden" name="gallery_images[]" id="gallery-input-<?php echo $i; ?>">
+                                    <img id="gallery-preview-<?php echo $i; ?>" class="hidden absolute inset-0 w-full h-full object-cover">
+                                    <div id="gallery-placeholder-<?php echo $i; ?>" class="text-zinc-700 text-[10px] font-mono group-hover:text-orange-500 transition-colors uppercase">Slot_<?php echo $i; ?></div>
+                                    <div id="gallery-progress-<?php echo $i; ?>" class="hidden absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300" style="width: 0%"></div>
+                                    <button type="button" onclick="event.stopPropagation(); removeGallery(<?php echo $i; ?>)" id="gallery-remove-<?php echo $i; ?>" class="hidden absolute top-1 right-1 p-1 bg-red-600 rounded-md text-white hover:bg-red-700 z-10">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Tier Access Matrix -->
+                    <div class="space-y-6 pt-6 border-t border-white/5">
+                        <h3 class="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500">Automated_Direct_Login_Matrix</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Level 0: Super Admin -->
+                            <div class="glass p-6 rounded-2xl space-y-4 border-orange-500/10">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-orange-500">Tier_0: Super_Admin</label>
+                                <input type="url" name="lvl0_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl0_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl0_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl0_direct_url" placeholder="Bypass_Link (Optional)" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <textarea name="lvl0_note" placeholder="Legacy Note/PIN" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
+                            </div>
+
+                            <!-- Level 1 -->
+                            <div class="glass p-6 rounded-2xl space-y-4 border-zinc-500/10">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-zinc-500">Tier_1: Restricted</label>
+                                <input type="url" name="lvl1_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl1_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl1_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl1_direct_url" placeholder="Bypass_Link" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <textarea name="lvl1_note" placeholder="Note" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
+                            </div>
+
+                            <!-- Level 2 -->
+                            <div class="glass p-6 rounded-2xl space-y-4 border-blue-500/10">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-blue-500">Tier_2: Standard</label>
+                                <input type="url" name="lvl2_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl2_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl2_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl2_direct_url" placeholder="Bypass_Link" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <textarea name="lvl2_note" placeholder="Note" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" name="save_project" class="w-full py-5 bg-white text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:bg-orange-500 transition-all shadow-xl text-center">
-                        Commit Node to Grid
+                        Synthesize & Commit to node
                     </button>
                 </form>
             </div>
 
             <!-- Existing Nodes -->
             <div class="space-y-4">
-                <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Active_Nodes</h2>
+                <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Active_Grid_Nodes</h2>
                 <div class="grid grid-cols-1 gap-4">
+                    <?php if(empty($projects)): ?>
+                        <div class="glass p-12 text-center text-[10px] font-mono text-zinc-700 uppercase italic">No active nodes detected in sector</div>
+                    <?php endif; ?>
                     <?php foreach($projects as $p): ?>
-                    <div class="glass p-6 rounded-2xl flex items-center justify-between group">
+                    <div class="glass p-6 rounded-2xl flex items-center justify-between group border-white/5 hover:border-orange-500/30 transition-all">
                         <div class="flex items-center gap-6">
-                            <div class="w-20 h-11 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-900 border border-white/5">
+                            <div class="w-20 h-11 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-900 border border-white/10">
                                 <?php echo render_media($p['thumbnail_url']); ?>
                             </div>
                             <div>
-                                <h4 class="font-black uppercase italic"><?php echo $p['title']; ?></h4>
-                                <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest"><?php echo $p['slug']; ?></div>
+                                <h4 class="font-black uppercase italic text-sm"><?php echo $p['title']; ?></h4>
+                                <div class="text-[8px] font-mono text-zinc-600 uppercase tracking-widest mt-1">
+                                    UUID: <?php echo $p['id']; ?> | <?php echo strtoupper($p['project_type']); ?> | <?php echo $p['slug']; ?>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                            <a href="?toggle_pin=<?php echo $p['id']; ?>" class="p-3 rounded-lg hover:bg-orange-600/20 text-orange-500 font-bold uppercase text-[9px] tracking-widest">
-                                <?php echo $p['is_pinned'] ? 'PINNED' : 'PIN'; ?>
+                        <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
+                            <a href="?toggle_pin=<?php echo $p['id']; ?>" class="px-4 py-2 rounded-lg <?php echo $p['is_pinned'] ? 'bg-orange-600/20 text-orange-500 border border-orange-500/20' : 'bg-white/5 text-zinc-500' ?> font-black uppercase text-[9px] tracking-widest hover:brightness-125 transition-all">
+                                <?php echo $p['is_pinned'] ? 'PINNED' : 'PIN_TO_HERO'; ?>
                             </a>
-                            <a href="?delete=<?php echo $p['id']; ?>" class="p-3 rounded-lg hover:bg-red-600/20 text-red-500 font-bold uppercase text-[9px] tracking-widest" onclick="return confirm('Erase node?')">DEL</a>
+                            <a href="?delete=<?php echo $p['id']; ?>" class="px-4 py-2 rounded-lg bg-red-600/10 text-red-500 border border-red-500/10 font-black uppercase text-[9px] tracking-widest hover:bg-red-600 hover:text-white transition-all" onclick="return confirm('Erase node?')">TERMINATE</a>
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -300,61 +427,91 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
         </div>
 
         <!-- System Settings Tab -->
-        <div id="tab-system" class="hidden space-y-12">
+        <div id="tab-system" class="hidden space-y-8">
             <div class="glass p-10 rounded-2xl space-y-8">
-                <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Global_Configuration</h2>
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Core_System_Settings</h2>
+                    <span class="text-[8px] font-mono text-zinc-600">v4.8 // IDENTITY_CLUSTER</span>
+                </div>
                 <form method="POST" class="space-y-6">
                     <?php
                     $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
                     $s = [];
                     while($row = $stmt->fetch()) $s[$row['setting_key']] = $row['setting_value'];
                     ?>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Station Identity</label>
-                            <input type="text" name="appTitle" value="<?php echo htmlspecialchars($s['appTitle'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Auth Matrix Email</label>
-                            <input type="email" name="authorized_email" value="<?php echo htmlspecialchars($s['authorized_email'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-[9px] uppercase font-bold text-zinc-500">Broadcast Subtext</label>
-                        <textarea name="heroSubtext" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 h-24"><?php echo htmlspecialchars($s['heroSubtext'] ?? ''); ?></textarea>
-                    </div>
-
-                    <div class="pt-8 border-t border-white/5 space-y-6">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-[10px] font-black uppercase tracking-widest text-orange-500">Secure API Vault</h3>
-                            <span class="text-[8px] font-mono text-zinc-500 italic uppercase">AES-256 Equivalent Simulation</span>
-                        </div>
+                    <div class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
-                                <label class="text-[9px] uppercase font-bold text-zinc-500">Gemini Key</label>
-                                <input type="password" name="gemini_api_key" value="<?php echo htmlspecialchars($s['gemini_api_key'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                                <label class="text-[9px] uppercase font-bold text-zinc-500">Broadcast Station Identifier (App Title)</label>
+                                <input type="text" name="appTitle" value="<?php echo htmlspecialchars($s['appTitle'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-black">
                             </div>
                             <div class="space-y-2">
-                                <label class="text-[9px] uppercase font-bold text-zinc-500">DeepSeek Key</label>
-                                <input type="password" name="deepseek_api_key" value="<?php echo htmlspecialchars($s['deepseek_api_key'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                                <label class="text-[9px] uppercase font-bold text-zinc-500">Admin Authentication Email</label>
+                                <input type="email" name="authorized_email" value="<?php echo htmlspecialchars($s['authorized_email'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono">
                             </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Primary Hero Broadcast Subtext</label>
+                            <textarea name="heroSubtext" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 h-24 text-sm leading-relaxed"><?php echo htmlspecialchars($s['heroSubtext'] ?? ''); ?></textarea>
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
                             <div class="space-y-2">
-                                <label class="text-[9px] uppercase font-bold text-orange-500">Admin Identity</label>
+                                <label class="text-[9px] uppercase font-bold text-orange-500">Master Identity ID</label>
                                 <input type="text" name="admin_username" value="<?php echo htmlspecialchars($s['admin_username'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-xs">
                             </div>
                             <div class="space-y-2">
-                                <label class="text-[9px] uppercase font-bold text-orange-500">Admin Passphrase</label>
+                                <label class="text-[9px] uppercase font-bold text-orange-500">Master Passphrase</label>
                                 <input type="password" name="admin_password" value="<?php echo htmlspecialchars($s['admin_password'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-xs">
                             </div>
                         </div>
                     </div>
 
-                    <button type="submit" name="update_settings" class="w-full py-5 bg-orange-600 text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-xl text-center">
-                        Synchronize Matrix
+                    <button type="submit" name="update_settings" class="w-full py-5 bg-orange-600 text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:brightness-110 transition-all shadow-xl">
+                        Commit_System_Changes
                     </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- API Keys Tab -->
+        <div id="tab-api" class="hidden space-y-8">
+            <div class="glass p-10 rounded-2xl space-y-8">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Integrations_Vault</h2>
+                    <span class="text-[8px] font-mono text-zinc-600">ENCRYPTION: ACTIVE</span>
+                </div>
+                <form method="POST" class="space-y-8">
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[9px] uppercase font-bold text-zinc-400">Gemini AI Key (Node Alpha)</label>
+                                <input type="password" name="gemini_api_key" value="<?php echo htmlspecialchars($s['gemini_api_key'] ?? ''); ?>" placeholder="Enter Gemini Key" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[9px] uppercase font-bold text-zinc-400">DeepSeek AI Key (Node Bravo)</label>
+                                <input type="password" name="deepseek_api_key" value="<?php echo htmlspecialchars($s['deepseek_api_key'] ?? ''); ?>" placeholder="Enter DeepSeek Key" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[9px] uppercase font-bold text-zinc-500">PageSpeed Insights Index Key</label>
+                                <input type="password" name="pagespeed_api_key" value="<?php echo htmlspecialchars($s['pagespeed_api_key'] ?? ''); ?>" placeholder="Enter PageSpeed Key" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[9px] uppercase font-bold text-orange-500">Default AI Dispatcher</label>
+                                <select name="default_ai_agent" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 uppercase font-black text-xs">
+                                    <option value="gemini" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'gemini' ? 'selected' : ''; ?>>AI_ALPHA: GEMINI_1.5_PRO</option>
+                                    <option value="deepseek" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'deepseek' ? 'selected' : ''; ?>>AI_BRAVO: DEEPSEEK_V3</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" name="update_settings" class="w-full py-5 bg-white text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:bg-orange-500 transition-all shadow-xl">
+                        Vault_Update_Matrix
+                    </button>
+                    <p class="text-center text-[8px] font-mono text-zinc-600 uppercase tracking-widest italic">Note: AI specialists handle all 'Scan & Deploy' operations based on active node choice.</p>
                 </form>
             </div>
         </div>
@@ -365,10 +522,10 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
             document.getElementById('tab-' + tab).classList.remove('hidden');
             
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('bg-orange-600', 'text-black');
+                btn.classList.remove('bg-orange-600', 'text-black', 'shadow-lg');
                 btn.classList.add('text-zinc-500');
                 if(btn.dataset.tab === tab) {
-                    btn.classList.add('bg-orange-600', 'text-black');
+                    btn.classList.add('bg-orange-600', 'text-black', 'shadow-lg');
                     btn.classList.remove('text-zinc-500');
                 }
             });
@@ -377,10 +534,12 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
         async function generateAI() {
             const url = document.getElementById('f-url').value;
             const title = document.getElementById('f-title').value;
-            if(!url) return alert('Target URL Required');
+            if(!url) return alert('Protocol Error: Destination URL Required');
             
             const loader = document.getElementById('ai-loading');
+            const status = document.getElementById('ai-status');
             loader.classList.remove('hidden');
+            status.innerText = "Agent_Scanning_Destination...";
             
             try {
                 const res = await fetch('api_ai.php', {
@@ -392,16 +551,83 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                 
                 if(data.error) throw new Error(data.error);
                 
-                if(data.content) document.getElementById('f-content').value = data.content;
-                if(data.metaTitle && !title) document.getElementById('f-title').value = data.metaTitle;
+                status.innerText = "Reconfiguring_Identity...";
                 
-                alert('Analysis Complete. Node data populated.');
+                if(data.content) document.getElementById('f-content').value = data.content;
+                if(data.metaTitle) document.getElementById('f-meta-title').value = data.metaTitle;
+                if(data.metaTitle && !title) document.getElementById('f-title').value = data.metaTitle;
+                if(data.waMessage) document.getElementById('f-wa').value = data.waMessage;
+                
+                // Tech Stack population
+                if (data.techStack && data.techStack.length > 0) {
+                    const stack = data.techStack.map(s => s.name).join(', ');
+                    document.getElementById('f-content').value += "\n\n### Strategic Tech Stack\n" + stack;
+                }
+
+                alert('Autonomous Analysis Complete. Node successfully reconfigured.');
             } catch(e) {
-                alert('Analysis Error: ' + (e.message || 'Unknown Protocol Error'));
+                alert('Neutralization Failed: ' + (e.message || 'Unknown Protocol Error'));
             } finally {
                 loader.classList.add('hidden');
             }
         }
+
+        // Gallery Handlers
+        function handleDrop(e, index) {
+            e.preventDefault();
+            this.classList.remove('border-orange-500');
+            const file = e.dataTransfer.files[0];
+            if (file) processFile(file, index);
+        }
+
+        function handleFile(input, index) {
+            const file = input.files[0];
+            if (file) processFile(file, index);
+        }
+
+        function processFile(file, index) {
+            if (!file.type.startsWith('image/')) return alert('CRITICAL: Image nodes only');
+            
+            const progress = document.getElementById('gallery-progress-' + index);
+            const placeholder = document.getElementById('gallery-placeholder-' + index);
+            
+            progress.classList.remove('hidden');
+            progress.style.width = '0%';
+            placeholder.innerText = 'Converting...';
+
+            const reader = new FileReader();
+            
+            reader.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const pct = (e.loaded / e.total) * 100;
+                    progress.style.width = pct + '%';
+                }
+            };
+
+            reader.onload = (e) => {
+                const base64 = e.target.result;
+                document.getElementById('gallery-input-' + index).value = base64;
+                const preview = document.getElementById('gallery-preview-' + index);
+                preview.src = base64;
+                preview.classList.remove('hidden');
+                document.getElementById('gallery-remove-' + index).classList.remove('hidden');
+                progress.style.width = '100%';
+                setTimeout(() => progress.classList.add('hidden'), 500);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeGallery(index) {
+            document.getElementById('gallery-input-' + index).value = '';
+            const preview = document.getElementById('gallery-preview-' + index);
+            preview.src = '';
+            preview.classList.add('hidden');
+            document.getElementById('gallery-remove-' + index).classList.add('hidden');
+            document.getElementById('gallery-placeholder-' + index).innerText = 'Slot_' + index;
+        }
+
+        // Initial Tab setup
+        window.onload = () => switchTab('posting');
     </script>
     </div>
 </body>

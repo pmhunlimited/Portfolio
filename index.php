@@ -2,6 +2,13 @@
 require_once 'db.php';
 require_once 'functions.php';
 
+// Global Security Pulse: Protection Headers
+header("X-Frame-Options: SAMEORIGIN");
+header("X-XSS-Protection: 1; mode=block");
+header("X-Content-Type-Options: nosniff");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+header("Content-Security-Policy: default-src 'self' https: 'unsafe-inline' 'unsafe-eval' data: blob:;");
+
 // Fetch Settings
 $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
@@ -35,10 +42,14 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $projects = $stmt->fetchAll();
 
-// Hero Nodes (Pinned or Latest)
+// Hero Nodes Prioritization: Pinned -> Latest (Max 4)
 $hero_projects = $pdo->query("SELECT * FROM projects WHERE is_pinned = 1 ORDER BY created_at DESC LIMIT 4")->fetchAll();
-if (empty($hero_projects)) {
-    $hero_projects = array_slice($projects, 0, 4);
+if (count($hero_projects) < 4) {
+    $needed = 4 - count($hero_projects);
+    $pinned_ids = array_column($hero_projects, 'id');
+    $placeholders = empty($pinned_ids) ? "" : "AND id NOT IN (".implode(',', $pinned_ids).")";
+    $backfills = $pdo->query("SELECT * FROM projects WHERE 1=1 $placeholders ORDER BY created_at DESC LIMIT $needed")->fetchAll();
+    $hero_projects = array_merge($hero_projects, $backfills);
 }
 ?>
 <!DOCTYPE html>
@@ -143,10 +154,13 @@ if (empty($hero_projects)) {
             
             <div class="w-full lg:w-[450px] grid grid-cols-2 gap-4">
                 <?php foreach($hero_projects as $hp): ?>
-                <a href="project.php?slug=<?php echo $hp['slug']; ?>" class="group block aspect-square glass rounded-xl overflow-hidden relative border border-white/5">
-                    <?php echo render_media($hp['thumbnail_url'], "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"); ?>
-                    <div class="absolute inset-x-0 bottom-0 p-3 bg-black/60 backdrop-blur-sm">
-                        <div class="text-[9px] font-black uppercase text-white truncate"><?php echo $hp['title']; ?></div>
+                <a href="project.php?slug=<?php echo $hp['slug']; ?>" class="group block aspect-square glass rounded-[24px] overflow-hidden relative border border-white/10 hover:border-orange-500/40 transition-all shadow-2xl">
+                    <?php echo render_media($hp['thumbnail_url'], "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"); ?>
+                    <div class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-[2px]">
+                        <div class="text-[9px] font-black uppercase tracking-widest text-white truncate"><?php echo $hp['title']; ?></div>
+                        <?php if($hp['is_pinned']): ?>
+                            <div class="text-[7px] font-mono text-orange-500 uppercase mt-1">Priority_node_0<?php echo $hp['id']; ?></div>
+                        <?php endif; ?>
                     </div>
                 </a>
                 <?php endforeach; ?>

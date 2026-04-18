@@ -18,7 +18,8 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('pagespeed_api_key', ''),
 ('admin_username', 'philmorehost@gmail.com'),
 ('admin_password', 'password1234'),
-('authorized_email', 'philmorehost@gmail.com');
+('authorized_email', 'philmorehost@gmail.com'),
+('default_ai_agent', 'gemini');
 
 -- Projects Table
 CREATE TABLE IF NOT EXISTS projects (
@@ -36,6 +37,24 @@ CREATE TABLE IF NOT EXISTS projects (
     security INT DEFAULT 100,
     inquiries_count INT DEFAULT 0,
     is_pinned BOOLEAN DEFAULT FALSE,
+    -- Multi-Tier Access: Level 0 (Super Admin)
+    lvl0_login_url VARCHAR(500),
+    lvl0_user VARCHAR(255),
+    lvl0_pass VARCHAR(255),
+    lvl0_direct_url VARCHAR(500),
+    lvl0_note TEXT,
+    -- Multi-Tier Access: Level 1 (Restricted Admin)
+    lvl1_login_url VARCHAR(500),
+    lvl1_user VARCHAR(255),
+    lvl1_pass VARCHAR(255),
+    lvl1_direct_url VARCHAR(500),
+    lvl1_note TEXT,
+    -- Multi-Tier Access: Level 2 (Standard User)
+    lvl2_login_url VARCHAR(500),
+    lvl2_user VARCHAR(255),
+    lvl2_pass VARCHAR(255),
+    lvl2_direct_url VARCHAR(500),
+    lvl2_note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

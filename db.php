@@ -15,7 +15,17 @@ $options = [
 
 try {
      $pdo = new PDO($dsn, $user, $pass, $options);
+     
+     // Check if settings table exists to confirm installation
+     $check = $pdo->query("SHOW TABLES LIKE 'settings'");
+     if ($check->rowCount() == 0 && basename($_SERVER['PHP_SELF']) !== 'install.php') {
+         header("Location: install.php");
+         exit;
+     }
 } catch (\PDOException $e) {
-     throw new \PDOException($e->getMessage(), (int)$e->getCode());
+     if (basename($_SERVER['PHP_SELF']) !== 'install.php') {
+         header("Location: install.php");
+         exit;
+     }
 }
 ?>

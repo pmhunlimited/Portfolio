@@ -20,18 +20,21 @@ if (!$url) {
     exit;
 }
 
-// Fetch Gemini Key
-$stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'gemini_api_key'");
-$stmt->execute();
-$api_key = $stmt->fetchColumn();
+// Fetch AI Config
+$stmt = $pdo->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('gemini_api_key', 'deepseek_api_key', 'default_ai_agent')");
+$settings = [];
+while($row = $stmt->fetch()) $settings[$row['setting_key']] = $row['setting_value'];
+
+$agent = $settings['default_ai_agent'] ?? 'gemini';
+$api_key = ($agent === 'deepseek') ? ($settings['deepseek_api_key'] ?? '') : ($settings['gemini_api_key'] ?? '');
 
 if (!$api_key) {
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'API_KEY_MISSING']);
+    echo json_encode(['error' => 'API_KEY_MISSING_FOR_' . strtoupper($agent)]);
     exit;
 }
 
-$pitch = generate_project_pitch($api_key, $url, $title);
+$pitch = generate_project_pitch($api_key, $url, $agent, $title);
 
 header('Content-Type: application/json');
 echo json_encode($pitch ?: ['error' => 'GENERATION_FAILED']);

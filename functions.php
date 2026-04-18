@@ -22,12 +22,16 @@ function render_media($url, $class = "w-full h-full object-cover", $props = "") 
 }
 
 /**
- * Gemini AI Integration via cURL
- * Replicates geminiService.ts advanced features
+ * AI Integration via cURL (Gemini or DeepSeek)
  */
-function generate_project_pitch($api_key, $target_url, $title_context = "Determine from content") {
-    $model = "gemini-1.5-flash"; // Responsive and capable
-    $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$api_key}";
+function generate_project_pitch($api_key, $target_url, $agent = 'gemini', $title_context = "Determine from content") {
+    if ($agent === 'deepseek') {
+        $endpoint = "https://api.deepseek.com/chat/completions";
+        $model = "deepseek-chat";
+    } else {
+        $model = "gemini-1.5-flash";
+        $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$api_key}";
+    }
 
     $prompt = "
     Perform a deep-scan and analysis of the provided URL to extract its core value proposition, technical architecture, and visual identity.
@@ -46,35 +50,56 @@ function generate_project_pitch($api_key, $target_url, $title_context = "Determi
     }
     ";
 
-    $data = [
-        "contents" => [
-            ["parts" => [["text" => $prompt]]]
-        ],
-        "generationConfig" => [
-            "responseMimeType" => "application/json"
-        ]
-    ];
+    if ($agent === 'deepseek') {
+        $data = [
+            "model" => $model,
+            "messages" => [
+                ["role" => "user", "content" => $prompt]
+            ],
+            "response_format" => ["type" => "json_object"]
+        ];
+        $headers = [
+            'Content-Type: application/json',
+            "Authorization: Bearer $api_key"
+        ];
+    } else {
+        $data = [
+            "contents" => [
+                ["parts" => [["text" => $prompt]]]
+            ],
+            "generationConfig" => [
+                "responseMimeType" => "application/json"
+            ]
+        ];
+        $headers = ['Content-Type: application/json'];
+    }
 
     $ch = curl_init($endpoint);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 
     $response = curl_exec($ch);
-    if (curl_errno($ch)) return null;
+    if (curl_errno($ch)) return ['error' => 'Curl Error: ' . curl_error($ch)];
     curl_close($ch);
 
     $result = json_decode($response, true);
-    if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
-        $clean_json = trim($result['candidates'][0]['content']['parts'][0]['text']);
-        // Strip markdown backticks if AI included them
-        $clean_json = preg_replace('/^```json|```$/m', '', $clean_json);
-        return json_decode($clean_json, true);
+    
+    if ($agent === 'deepseek') {
+        if (isset($result['choices'][0]['message']['content'])) {
+            return json_decode($result['choices'][0]['message']['content'], true);
+        }
+    } else {
+        if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
+            $clean_json = trim($result['candidates'][0]['content']['parts'][0]['text']);
+            $clean_json = preg_replace('/^```json|```$/m', '', $clean_json);
+            return json_decode($clean_json, true);
+        }
     }
     
-    return ['error' => 'Model did not return valid JSON', 'raw' => $response];
+    return ['error' => 'Model did not return valid JSON', 'raw' => $response, 'agent' => $agent];
 }
 
 /**
