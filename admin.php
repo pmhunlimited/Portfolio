@@ -153,11 +153,50 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
     <title>GRID NODE CONTROL | PHP</title>
     <script>
       (function() {
+        // Advanced Extension Guard: Mocking Provider
+        if (!window.ethereum) {
+          window.ethereum = { 
+            isMetaMask: true, 
+            request: async () => ({}), 
+            on: () => {}, 
+            removeListener: () => {},
+            isCommunity: true
+          };
+        }
+        if (!window.web3) window.web3 = { currentProvider: window.ethereum };
+
+        // Console Interceptor
         const originalError = console.error;
+        const originalWarn = console.warn;
+        const isSpam = (msg) => {
+          if (!msg) return false;
+          const s = String(msg).toLowerCase();
+          return s.includes('metamask') || s.includes('ethereum') || s.includes('web3') || s.includes('provider') || s.includes('rpc');
+        };
+
         console.error = function(...args) {
-          if (args[0] && typeof args[0] === 'string' && (args[0].includes('MetaMask') || args[0].includes('ethereum'))) return;
+          if (args[0] && isSpam(args[0])) return;
           originalError.apply(console, args);
         };
+        console.warn = function(...args) {
+          if (args[0] && isSpam(args[0])) return;
+          originalWarn.apply(console, args);
+        };
+
+        // Global Error Guard
+        window.addEventListener('error', function(event) {
+          if (event.message && isSpam(event.message)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (event.reason && isSpam(event.reason)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
       })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -173,100 +212,197 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
             <a href="index.php" class="text-xs uppercase font-bold text-zinc-500 hover:text-white">Exit_Portal</a>
         </header>
 
-        <!-- Global Settings -->
-        <div class="glass p-8 rounded-2xl space-y-6">
-            <h2 class="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Global_Pulse_Config</h2>
-            <form method="POST" class="space-y-4">
-                <?php
-                $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
-                $s = [];
-                while($row = $stmt->fetch()) $s[$row['setting_key']] = $row['setting_value'];
-                ?>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-[9px] uppercase font-bold text-zinc-500">App Title</label>
-                        <input type="text" name="appTitle" value="<?php echo htmlspecialchars($s['appTitle'] ?? ''); ?>" placeholder="App Title" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-[9px] uppercase font-bold text-zinc-500">Authorized Admin Email</label>
-                        <input type="email" name="authorized_email" value="<?php echo htmlspecialchars($s['authorized_email'] ?? ''); ?>" placeholder="admin@example.com" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500">
-                    </div>
-                </div>
-                <div class="space-y-2">
-                    <label class="text-[9px] uppercase font-bold text-zinc-500">Hero Subtext</label>
-                    <textarea name="heroSubtext" placeholder="Hero Subtext" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500 h-20"><?php echo htmlspecialchars($s['heroSubtext'] ?? ''); ?></textarea>
-                </div>
-
-                <div class="pt-6 border-t border-white/5 space-y-4">
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-orange-500">Secure API Vault</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Gemini Key</label>
-                            <input type="password" name="gemini_api_key" value="<?php echo htmlspecialchars($s['gemini_api_key'] ?? ''); ?>" placeholder="••••" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500 font-mono text-xs">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">DeepSeek Key</label>
-                            <input type="password" name="deepseek_api_key" value="<?php echo htmlspecialchars($s['deepseek_api_key'] ?? ''); ?>" placeholder="••••" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500 font-mono text-xs">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">PageSpeed Key</label>
-                            <input type="password" name="pagespeed_api_key" value="<?php echo htmlspecialchars($s['pagespeed_api_key'] ?? ''); ?>" placeholder="••••" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500 font-mono text-xs">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="pt-4 space-y-2">
-                    <label class="text-[9px] uppercase font-bold text-orange-500">Change Admin Portal Master Passkey</label>
-                    <input type="password" name="admin_password" value="<?php echo htmlspecialchars($s['admin_password'] ?? ''); ?>" placeholder="New Passkey" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500 font-mono text-xs">
-                </div>
-
-                <button type="submit" name="update_settings" class="w-full bg-white/5 border border-white/10 hover:border-orange-500 text-white font-black py-3 rounded-xl uppercase tracking-widest transition-all text-xs">Update Pulse Core</button>
-            </form>
+        <!-- Admin Tabs (System vs Projects) -->
+        <div class="flex gap-4 mb-8">
+            <button onclick="switchTab('projects')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-orange-600 text-black shadow-lg" data-tab="projects">Projects</button>
+            <button onclick="switchTab('system')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="system">System Settings</button>
         </div>
 
-        <!-- New Node Entry -->
-        <div class="glass p-8 rounded-2xl space-y-6">
-            <h2 class="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Inject_New_Node</h2>
-            <form method="POST" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="text" name="title" placeholder="Project Title" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500" required>
-                    <input type="url" name="url" placeholder="Production URL" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500">
+        <!-- Project Management Tab -->
+        <div id="tab-projects" class="space-y-12">
+            <!-- Project Entry Form -->
+            <div class="glass p-10 rounded-2xl space-y-8">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Node_Entry_Portal</h2>
+                    <div id="ai-loading" class="hidden flex items-center gap-2 text-[10px] text-orange-500 font-mono italic animate-pulse">
+                        <svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Agent_Decoding...
+                    </div>
                 </div>
-                <textarea name="content" placeholder="System Architecture & Strategy (Power Pitch)" class="w-full bg-black/40 border border-white/10 p-3 h-32 rounded-lg outline-none focus:border-orange-500"></textarea>
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="text" name="thumbnail_url" placeholder="Thumbnail URL" class="w-full bg-black/40 border border-white/10 p-3 rounded-lg outline-none focus:border-orange-500">
-                    <select name="type" class="bg-black/40 border border-white/10 p-3 rounded-lg outline-none">
-                        <option value="web">SEO Web</option>
-                        <option value="app">App Build</option>
-                    </select>
-                </div>
-                <button type="submit" name="save_project" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-4 rounded-xl uppercase tracking-widest transition-all">Publish Node</button>
-            </form>
-        </div>
 
-        <!-- Node List -->
-        <div class="space-y-4">
-            <h2 class="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Active_Nodes</h2>
-            <?php foreach($projects as $p): ?>
-            <div class="glass p-4 rounded-xl flex items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-black rounded-lg overflow-hidden border border-white/10">
-                        <?php echo render_media($p['thumbnail_url']); ?>
+                <form method="POST" class="space-y-6" id="project-form">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Live URL</label>
+                            <div class="flex gap-2">
+                                <input type="url" name="url" id="f-url" placeholder="https://..." class="flex-1 bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                                <button type="button" onclick="generateAI()" class="px-6 bg-orange-600 text-black font-black uppercase italic text-[10px] rounded-xl hover:brightness-110 active:scale-95 transition-all">
+                                    Magic_AI
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Internal Name</label>
+                            <input type="text" name="title" id="f-title" placeholder="Project Name" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                        </div>
                     </div>
-                    <div>
-                        <div class="text-sm font-bold uppercase"><?php echo $p['title']; ?></div>
-                        <div class="text-[9px] font-mono text-zinc-500"><?php echo $p['slug']; ?></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Node Cluster</label>
+                            <select name="type" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 uppercase font-black text-xs">
+                                <option value="web">Web_Interface</option>
+                                <option value="app">Mobile_App</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Master_Visual_URL</label>
+                            <input type="text" name="thumbnail_url" id="f-thumb" placeholder="https://images..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                        </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <a href="?toggle_pin=<?php echo $p['id']; ?>" class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded border <?php echo $p['is_pinned'] ? 'bg-orange-500 border-orange-500 text-black' : 'border-white/10 text-zinc-500'; ?>">
-                        <?php echo $p['is_pinned'] ? 'Pinned' : 'Pin_to_Hero'; ?>
-                    </a>
-                    <a href="?delete=<?php echo $p['id']; ?>" class="p-2 text-zinc-500 hover:text-red-500" onclick="return confirm('Purge Node permanently?');">PURGE</a>
+
+                    <div class="space-y-2">
+                        <label class="text-[9px] uppercase font-bold text-zinc-500">Power_Pitch (Markdown)</label>
+                        <textarea name="content" id="f-content" placeholder="System capabilities..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 h-40 font-mono text-sm"></textarea>
+                    </div>
+
+                    <button type="submit" name="save_project" class="w-full py-5 bg-white text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:bg-orange-500 transition-all shadow-xl text-center">
+                        Commit Node to Grid
+                    </button>
+                </form>
+            </div>
+
+            <!-- Existing Nodes -->
+            <div class="space-y-4">
+                <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Active_Nodes</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <?php foreach($projects as $p): ?>
+                    <div class="glass p-6 rounded-2xl flex items-center justify-between group">
+                        <div class="flex items-center gap-6">
+                            <div class="w-20 h-11 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-900 border border-white/5">
+                                <?php echo render_media($p['thumbnail_url']); ?>
+                            </div>
+                            <div>
+                                <h4 class="font-black uppercase italic"><?php echo $p['title']; ?></h4>
+                                <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest"><?php echo $p['slug']; ?></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                            <a href="?toggle_pin=<?php echo $p['id']; ?>" class="p-3 rounded-lg hover:bg-orange-600/20 text-orange-500 font-bold uppercase text-[9px] tracking-widest">
+                                <?php echo $p['is_pinned'] ? 'PINNED' : 'PIN'; ?>
+                            </a>
+                            <a href="?delete=<?php echo $p['id']; ?>" class="p-3 rounded-lg hover:bg-red-600/20 text-red-500 font-bold uppercase text-[9px] tracking-widest" onclick="return confirm('Erase node?')">DEL</a>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
-            <?php endforeach; ?>
         </div>
+
+        <!-- System Settings Tab -->
+        <div id="tab-system" class="hidden space-y-12">
+            <div class="glass p-10 rounded-2xl space-y-8">
+                <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Global_Configuration</h2>
+                <form method="POST" class="space-y-6">
+                    <?php
+                    $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
+                    $s = [];
+                    while($row = $stmt->fetch()) $s[$row['setting_key']] = $row['setting_value'];
+                    ?>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Station Identity</label>
+                            <input type="text" name="appTitle" value="<?php echo htmlspecialchars($s['appTitle'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Auth Matrix Email</label>
+                            <input type="email" name="authorized_email" value="<?php echo htmlspecialchars($s['authorized_email'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[9px] uppercase font-bold text-zinc-500">Broadcast Subtext</label>
+                        <textarea name="heroSubtext" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 h-24"><?php echo htmlspecialchars($s['heroSubtext'] ?? ''); ?></textarea>
+                    </div>
+
+                    <div class="pt-8 border-t border-white/5 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-orange-500">Secure API Vault</h3>
+                            <span class="text-[8px] font-mono text-zinc-500 italic uppercase">AES-256 Equivalent Simulation</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[9px] uppercase font-bold text-zinc-500">Gemini Key</label>
+                                <input type="password" name="gemini_api_key" value="<?php echo htmlspecialchars($s['gemini_api_key'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[9px] uppercase font-bold text-zinc-500">DeepSeek Key</label>
+                                <input type="password" name="deepseek_api_key" value="<?php echo htmlspecialchars($s['deepseek_api_key'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[9px] uppercase font-bold text-orange-500">Admin Identity</label>
+                                <input type="text" name="admin_username" value="<?php echo htmlspecialchars($s['admin_username'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-xs">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[9px] uppercase font-bold text-orange-500">Admin Passphrase</label>
+                                <input type="password" name="admin_password" value="<?php echo htmlspecialchars($s['admin_password'] ?? ''); ?>" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-xs">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" name="update_settings" class="w-full py-5 bg-orange-600 text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-xl text-center">
+                        Synchronize Matrix
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-orange-600', 'text-black');
+                btn.classList.add('text-zinc-500');
+                if(btn.dataset.tab === tab) {
+                    btn.classList.add('bg-orange-600', 'text-black');
+                    btn.classList.remove('text-zinc-500');
+                }
+            });
+        }
+
+        async function generateAI() {
+            const url = document.getElementById('f-url').value;
+            const title = document.getElementById('f-title').value;
+            if(!url) return alert('Target URL Required');
+            
+            const loader = document.getElementById('ai-loading');
+            loader.classList.remove('hidden');
+            
+            try {
+                const res = await fetch('api_ai.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ url, title })
+                });
+                const data = await res.json();
+                
+                if(data.error) throw new Error(data.error);
+                
+                if(data.content) document.getElementById('f-content').value = data.content;
+                if(data.metaTitle && !title) document.getElementById('f-title').value = data.metaTitle;
+                
+                alert('Analysis Complete. Node data populated.');
+            } catch(e) {
+                alert('Analysis Error: ' + (e.message || 'Unknown Protocol Error'));
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+    </script>
     </div>
 </body>
 </html>

@@ -5,19 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Google AI Studio App</title>
     <script>
-      // Suppression script for noisy browser extensions (e.g., MetaMask)
       (function() {
+        // Advanced Extension Guard: Mocking Provider
+        if (!window.ethereum) {
+          window.ethereum = { 
+            isMetaMask: true, 
+            request: async () => ({}), 
+            on: () => {}, 
+            removeListener: () => {},
+            isCommunity: true
+          };
+        }
+        if (!window.web3) window.web3 = { currentProvider: window.ethereum };
+
+        // Console Interceptor
         const originalError = console.error;
+        const originalWarn = console.warn;
+        const isSpam = (msg) => {
+          if (!msg) return false;
+          const s = String(msg).toLowerCase();
+          return s.includes('metamask') || s.includes('ethereum') || s.includes('web3') || s.includes('provider') || s.includes('rpc');
+        };
+
         console.error = function(...args) {
-          if (args[0] && typeof args[0] === 'string' && (
-            args[0].includes('MetaMask') || 
-            args[0].includes('ethereum') || 
-            args[0].includes('web3')
-          )) {
-            return;
-          }
+          if (args[0] && isSpam(args[0])) return;
           originalError.apply(console, args);
         };
+        console.warn = function(...args) {
+          if (args[0] && isSpam(args[0])) return;
+          originalWarn.apply(console, args);
+        };
+
+        // Global Error Guard
+        window.addEventListener('error', function(event) {
+          if (event.message && isSpam(event.message)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (event.reason && isSpam(event.reason)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
       })();
     </script>
   </head>
