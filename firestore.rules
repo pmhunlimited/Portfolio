@@ -1,0 +1,92 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Dynamic Admin Check: Fetches the authorized email from the settings/keys document
+    function isAdmin() {
+      return isSignedIn() && 
+             request.auth.token.email_verified == true && (
+               request.auth.token.email == 'philmorehost@gmail.com' ||
+               request.auth.token.email == get(/databases/$(database)/documents/settings/keys).data.authorizedEmail
+             );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for Project
+    function isValidProject(data) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.slug is string && data.slug.size() <= 200 &&
+             data.url is string && data.url.size() <= 500 &&
+             data.type in ['web', 'app'] &&
+             (!('content' in data) || (data.content is string && data.content.size() <= 10000)) &&
+             (!('thumbnailUrl' in data) || (data.thumbnailUrl is string && data.thumbnailUrl.size() <= 1000000)) &&
+             (!('galleryImages' in data) || (data.galleryImages is list && data.galleryImages.size() <= 10)) &&
+             (!('inquiriesCount' in data) || (data.inquiriesCount is int));
+    }
+
+    // Validation for Settings
+    function isValidSettings(data) {
+      return (!('appTitle' in data) || (data.appTitle is string && data.appTitle.size() <= 100)) &&
+             (!('heroSubtext' in data) || (data.heroSubtext is string && data.heroSubtext.size() <= 1000));
+    }
+
+    // Validation for Keys
+    function isValidKeys(data) {
+      return (!('authorizedEmail' in data) || (data.authorizedEmail is string && data.authorizedEmail.size() <= 200)) &&
+             (!('adminUsername' in data) || (data.adminUsername is string && data.adminUsername.size() <= 200)) &&
+             (!('adminPassword' in data) || (data.adminPassword is string && data.adminPassword.size() <= 100));
+    }
+
+    match /settings/global {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSettings(incoming());
+    }
+
+    match /settings/keys {
+      // Allow read for login purposes: Anyone can attempt to read the login keys to verify,
+      // but only if they are trying to authenticate. However, since we fetch these in the client
+      // before auth is confirmed (to check the password), we allow read for signed in users.
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isValidKeys(incoming());
+    }
+
+    match /projects/{projectId} {
+      allow read: if true;
+      
+      allow create: if isAdmin() && isValidProject(incoming()) && isValidId(projectId);
+      
+      allow update: if (
+        // Action: Admin full update
+        (isAdmin() && isValidProject(incoming())) ||
+        // Action: User increment inquiry count (Atomic increment protection)
+        (
+          incoming().diff(existing()).affectedKeys().hasOnly(['inquiriesCount']) &&
+          incoming().inquiriesCount == existing().inquiriesCount + 1
+        )
+      );
+      
+      allow delete: if isAdmin();
+    }
+  }
+}

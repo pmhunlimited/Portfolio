@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-pitch-black: #000000;
+  --color-sharp-orange: #FF6600;
+  --color-glossy-purple: #BF00FF;
+  --color-text-dim: #888888;
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', monospace;
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-[15px] border border-white/10;
+  }
+  
+  .glass-purple {
+    @apply bg-[rgba(191,0,255,0.1)] backdrop-blur-[15px] border border-glossy-purple shadow-[0_0_30px_rgba(191,0,255,0.1)];
+  }
+
+  .nav-gradient {
+    background: linear-gradient(180deg, rgba(255, 102, 0, 0.05) 0%, transparent 100%);
+  }
+  
+  .neon-orange {
+    box-shadow: 0 0 15px rgba(255, 102, 0, 0.3);
+  }
+  
+  .neon-purple {
+    box-shadow: 0 0 20px rgba(191, 0, 255, 0.4);
+  }
+
+  .text-glow-orange {
+    text-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+  }
+
+  .text-glow-purple {
+    text-shadow: 0 0 10px rgba(191, 0, 255, 0.5);
+  }
+
+  .meter-fill {
+    @apply h-full bg-glossy-purple shadow-[0_0_10px_var(--color-glossy-purple)];
+  }
+}
+
+body {
+  @apply bg-pitch-black text-white selection:bg-sharp-orange selection:text-white font-sans;
+}
