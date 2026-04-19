@@ -3,9 +3,16 @@ require_once 'db.php';
 require_once 'functions.php';
 
 session_start();
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
 
-// Simple Login Check
+// Simple Login Check & OTP Protocol
 if (isset($_POST['login'])) {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
     $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'admin_username'");
     $stmt->execute();
     $masterUser = $stmt->fetchColumn() ?: 'philmorehost@gmail.com';
@@ -13,11 +20,54 @@ if (isset($_POST['login'])) {
     $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'admin_password'");
     $stmt->execute();
     $masterPass = $stmt->fetchColumn() ?: 'password1234';
-    
-    if ($_POST['username'] === $masterUser && $_POST['password'] === $masterPass) {
-        $_SESSION['authorized'] = true;
+
+    if ($username === $masterUser && (password_verify($password, $masterPass) || $password === $masterPass)) {
+        $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'otp_enabled'");
+        $stmt->execute();
+        $otpEnabled = ($stmt->fetchColumn() === '1');
+
+        if ($otpEnabled) {
+            $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            $expires = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+            
+            $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('admin_otp', ?) ON DUPLICATE KEY UPDATE setting_value = ?")->execute([$otp, $otp]);
+            $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('admin_otp_expires', ?) ON DUPLICATE KEY UPDATE setting_value = ?")->execute([$expires, $expires]);
+            
+            $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
+            $s = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            
+            $subject = "OTP Security Pulse: Access Request Detected";
+            $msg = "<h1>Security Verification</h1><p>A login attempt has been detected for your CyberPulse Node. Your OTP code is:</p><h2 style='font-size: 32px; letter-spacing: 5px;'>$otp</h2><p>Expires in 10 minutes. If you did not request this, secure your master passphrase immediately.</p>";
+            
+            if (send_email($s['authorized_email'] ?? $username, $subject, $msg, $s)) {
+                $_SESSION['pending_otp'] = true;
+                $_SESSION['temp_user'] = $username;
+            } else {
+                $error = "MAIL_DISPATCH_FAILURE: Check SMTP Configuration";
+            }
+        } else {
+            $_SESSION['authorized'] = true;
+        }
     } else {
         $error = "ACCESS_DENIED: Invalid Node Credentials";
+    }
+}
+
+if (isset($_POST['verify_otp']) && isset($_SESSION['pending_otp'])) {
+    $otp = $_POST['otp'];
+    $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'admin_otp'");
+    $stmt->execute();
+    $masterOtp = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'admin_otp_expires'");
+    $stmt->execute();
+    $masterExpires = $stmt->fetchColumn();
+
+    if ($otp === $masterOtp && strtotime($masterExpires) > time()) {
+        $_SESSION['authorized'] = true;
+        unset($_SESSION['pending_otp'], $_SESSION['temp_user']);
+    } else {
+        $error = "OTP_INVALID: Verification Sequence Failed";
     }
 }
 
@@ -46,18 +96,35 @@ if (!isset($_SESSION['authorized'])) {
         <div class="w-full max-w-md bg-glass p-12 rounded-[40px] space-y-10 shadow-2xl relative">
             <div class="text-center space-y-4">
                 <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-orange-600/10 border border-orange-600/20 mb-4 rotate-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-orange-600 -rotate-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-orange-600 -rotate-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8-10 8 10z"></path></svg>
                 </div>
                 <h1 class="text-3xl font-black italic tracking-tighter uppercase glow-orange">Node Access</h1>
-                <p class="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em]">Administrative Bypass Protocol 2.0</p>
+                <p class="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em]"><?php echo isset($_SESSION['pending_otp']) ? 'OTP Verification Required' : 'Administrative Bypass Protocol 2.0'; ?></p>
             </div>
 
             <?php if(isset($error)): ?>
                 <div class="bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-mono p-3 rounded-lg text-center uppercase tracking-widest">
-                    <?php echo $error; ?>
+                    <?php echo sanitize($error); ?>
                 </div>
             <?php endif; ?>
 
+            <?php if (isset($_SESSION['pending_otp'])): ?>
+            <form method="POST" class="space-y-6">
+                <div class="space-y-4">
+                    <div class="relative group">
+                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-orange-600 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </div>
+                        <input type="text" name="otp" placeholder="6-digit OTP" required maxlength="6"
+                               class="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-14 pr-4 outline-none focus:border-orange-600 transition-all font-mono text-center text-xl tracking-[1em] text-orange-500">
+                    </div>
+                </div>
+                <button type="submit" name="verify_otp" 
+                        class="w-full bg-orange-600 py-5 rounded-2xl text-black font-black uppercase italic tracking-[0.2em] text-sm hover:brightness-110 active:scale-95 transition-all shadow-[0_0_30px_rgba(234,88,12,0.3)]">
+                    Verify Identity
+                </button>
+            </form>
+            <?php else: ?>
             <form method="POST" class="space-y-6">
                 <div class="space-y-4">
                     <div class="relative group">
@@ -82,6 +149,7 @@ if (!isset($_SESSION['authorized'])) {
                     Initiate Sync
                 </button>
             </form>
+            <?php endif; ?>
 
             <div class="pt-6 border-t border-white/5 text-center space-y-4">
                 <p class="text-[9px] font-mono text-zinc-600 uppercase tracking-tighter italic">Sec_Protocol_v4.5.1 // Status: Encrypted</p>
@@ -100,15 +168,36 @@ if (!isset($_SESSION['authorized'])) {
 
 // Handle CRUD Operations
 if (isset($_POST['update_settings'])) {
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("CSRF_PROTOCOL_VIOLATION");
+    }
+    $sanitized = sanitize($_POST);
     $keys = [
         'appTitle', 'heroSubtext', 'gemini_api_key', 'deepseek_api_key', 'pagespeed_api_key', 
         'admin_username', 'admin_password', 'authorized_email', 'default_ai_agent',
-        'gemini_scans', 'deepseek_scans'
+        'gemini_scans', 'deepseek_scans', 'otp_enabled',
+        'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_secure', 'smtp_from_email', 'smtp_from_name'
     ];
     foreach ($keys as $key) {
         if (isset($_POST[$key])) {
+            $val = $_POST[$key]; // Use raw value for some fields, sanitize specifically
+            
+            if ($key === 'admin_password' && !empty($val)) {
+                // Only hash if it's different from current
+                $stmt_check = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'admin_password'");
+                $stmt_check->execute();
+                $current_stored = $stmt_check->fetchColumn();
+                if ($val !== $current_stored) {
+                    $val = password_hash($val, PASSWORD_DEFAULT);
+                } else {
+                    continue; // Skip if no change
+                }
+            } else {
+                $val = sanitize($val);
+            }
+
             $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
-            $stmt->execute([$key, $_POST[$key], $_POST[$key]]);
+            $stmt->execute([$key, $val, $val]);
         }
     }
     header("Location: admin.php?settings_updated=1");
@@ -135,53 +224,81 @@ if (isset($_GET['toggle_pin'])) {
 }
 
 if (isset($_POST['save_project'])) {
-    $title = $_POST['title'];
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("CSRF_PROTOCOL_VIOLATION");
+    }
+    $s_post = sanitize($_POST);
+    $project_id = $s_post['project_id'] ?? null;
+    $title = $s_post['title'];
     $slug = slugify($title);
-    $url = $_POST['url'];
-    $content = $_POST['content'];
-    $thumbnail = $_POST['thumbnail_url'];
-    $type = $_POST['type'];
+    $url = $s_post['url'];
+    $content = $s_post['content'];
+    $thumbnail = $s_post['thumbnail_url'];
+    $type = $s_post['type'];
 
     // Multi-Tier Fields
-    $lvl0_login_url = $_POST['lvl0_login_url'] ?? '';
-    $lvl0_user = $_POST['lvl0_user'] ?? '';
-    $lvl0_pass = $_POST['lvl0_pass'] ?? '';
-    $lvl0_direct_url = $_POST['lvl0_direct_url'] ?? '';
-    $lvl0_note = $_POST['lvl0_note'] ?? '';
+    $lvl0_login_url = $s_post['lvl0_login_url'] ?? '';
+    $lvl0_user = $s_post['lvl0_user'] ?? '';
+    $lvl0_pass = $s_post['lvl0_pass'] ?? '';
+    $lvl0_direct_url = $s_post['lvl0_direct_url'] ?? '';
+    $lvl0_note = $s_post['lvl0_note'] ?? '';
 
-    $lvl1_login_url = $_POST['lvl1_login_url'] ?? '';
-    $lvl1_user = $_POST['lvl1_user'] ?? '';
-    $lvl1_pass = $_POST['lvl1_pass'] ?? '';
-    $lvl1_direct_url = $_POST['lvl1_direct_url'] ?? '';
-    $lvl1_note = $_POST['lvl1_note'] ?? '';
+    $lvl1_login_url = $s_post['lvl1_login_url'] ?? '';
+    $lvl1_user = $s_post['lvl1_user'] ?? '';
+    $lvl1_pass = $s_post['lvl1_pass'] ?? '';
+    $lvl1_direct_url = $s_post['lvl1_direct_url'] ?? '';
+    $lvl1_note = $s_post['lvl1_note'] ?? '';
 
-    $lvl2_login_url = $_POST['lvl2_login_url'] ?? '';
-    $lvl2_user = $_POST['lvl2_user'] ?? '';
-    $lvl2_pass = $_POST['lvl2_pass'] ?? '';
-    $lvl2_direct_url = $_POST['lvl2_direct_url'] ?? '';
-    $lvl2_note = $_POST['lvl2_note'] ?? '';
+    $lvl2_login_url = $s_post['lvl2_login_url'] ?? '';
+    $lvl2_user = $s_post['lvl2_user'] ?? '';
+    $lvl2_pass = $s_post['lvl2_pass'] ?? '';
+    $lvl2_direct_url = $s_post['lvl2_direct_url'] ?? '';
+    $lvl2_note = $s_post['lvl2_note'] ?? '';
 
-    $stmt = $pdo->prepare("INSERT INTO projects (title, slug, content, site_url, thumbnail_url, project_type, 
-        lvl0_login_url, lvl0_user, lvl0_pass, lvl0_direct_url, lvl0_note,
-        lvl1_login_url, lvl1_user, lvl1_pass, lvl1_direct_url, lvl1_note,
-        lvl2_login_url, lvl2_user, lvl2_pass, lvl2_direct_url, lvl2_note,
-        meta_title, wa_message, speed
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    
-    $stmt->execute([
-        $title, $slug, $content, $url, $thumbnail, $type,
-        $lvl0_login_url, $lvl0_user, $lvl0_pass, $lvl0_direct_url, $lvl0_note,
-        $lvl1_login_url, $lvl1_user, $lvl1_pass, $lvl1_direct_url, $lvl1_note,
-        $lvl2_login_url, $lvl2_user, $lvl2_pass, $lvl2_direct_url, $lvl2_note,
-        $_POST['meta_title'] ?? '', $_POST['wa_message'] ?? '',
-        $_POST['speed'] ?? 98
-    ]);
-    
-    $project_id = $pdo->lastInsertId();
+    if ($project_id) {
+        $stmt = $pdo->prepare("UPDATE projects SET title = ?, slug = ?, content = ?, site_url = ?, thumbnail_url = ?, project_type = ?, 
+            lvl0_login_url = ?, lvl0_user = ?, lvl0_pass = ?, lvl0_direct_url = ?, lvl0_note = ?,
+            lvl1_login_url = ?, lvl1_user = ?, lvl1_pass = ?, lvl1_direct_url = ?, lvl1_note = ?,
+            lvl2_login_url = ?, lvl2_user = ?, lvl2_pass = ?, lvl2_direct_url = ?, lvl2_note = ?,
+            meta_title = ?, wa_message = ?, speed = ?
+            WHERE id = ?");
+        $stmt->execute([
+            $title, $slug, $content, $url, $thumbnail, $type,
+            $lvl0_login_url, $lvl0_user, $lvl0_pass, $lvl0_direct_url, $lvl0_note,
+            $lvl1_login_url, $lvl1_user, $lvl1_pass, $lvl1_direct_url, $lvl1_note,
+            $lvl2_login_url, $lvl2_user, $lvl2_pass, $lvl2_direct_url, $lvl2_note,
+            $s_post['meta_title'] ?? '', $s_post['wa_message'] ?? '',
+            $s_post['speed'] ?? 98,
+            $project_id
+        ]);
+
+        // Clean up tech stack, keywords, and gallery for re-insertion
+        $pdo->prepare("DELETE FROM tech_stacks WHERE project_id = ?")->execute([$project_id]);
+        $pdo->prepare("DELETE FROM keywords WHERE project_id = ?")->execute([$project_id]);
+        $pdo->prepare("DELETE FROM project_gallery WHERE project_id = ?")->execute([$project_id]);
+    } else {
+        $stmt = $pdo->prepare("INSERT INTO projects (title, slug, content, site_url, thumbnail_url, project_type, 
+            lvl0_login_url, lvl0_user, lvl0_pass, lvl0_direct_url, lvl0_note,
+            lvl1_login_url, lvl1_user, lvl1_pass, lvl1_direct_url, lvl1_note,
+            lvl2_login_url, lvl2_user, lvl2_pass, lvl2_direct_url, lvl2_note,
+            meta_title, wa_message, speed
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        $stmt->execute([
+            $title, $slug, $content, $url, $thumbnail, $type,
+            $lvl0_login_url, $lvl0_user, $lvl0_pass, $lvl0_direct_url, $lvl0_note,
+            $lvl1_login_url, $lvl1_user, $lvl1_pass, $lvl1_direct_url, $lvl1_note,
+            $lvl2_login_url, $lvl2_user, $lvl2_pass, $lvl2_direct_url, $lvl2_note,
+            $s_post['meta_title'] ?? '', $s_post['wa_message'] ?? '',
+            $s_post['speed'] ?? 98
+        ]);
+        
+        $project_id = $pdo->lastInsertId();
+    }
 
     // Handle Tech Stack
-    if (!empty($_POST['tech_stack'])) {
-        $stacks = explode(',', $_POST['tech_stack']);
+    if (!empty($s_post['tech_stack'])) {
+        $stacks = explode(',', $s_post['tech_stack']);
         foreach ($stacks as $s) {
             $s = trim($s);
             if (!empty($s)) {
@@ -192,8 +309,8 @@ if (isset($_POST['save_project'])) {
     }
 
     // Handle Keywords
-    if (!empty($_POST['keywords'])) {
-        $keys = explode(',', $_POST['keywords']);
+    if (!empty($s_post['keywords'])) {
+        $keys = explode(',', $s_post['keywords']);
         foreach ($keys as $k) {
             $k = trim($k);
             if (!empty($k)) {
@@ -204,8 +321,8 @@ if (isset($_POST['save_project'])) {
     }
 
     // Handle Gallery (Up to 5)
-    if (isset($_POST['gallery_images']) && is_array($_POST['gallery_images'])) {
-        foreach ($_POST['gallery_images'] as $order => $media_url) {
+    if (isset($s_post['gallery_images']) && is_array($s_post['gallery_images'])) {
+        foreach ($s_post['gallery_images'] as $order => $media_url) {
             if (!empty($media_url)) {
                 $stmt = $pdo->prepare("INSERT INTO project_gallery (project_id, media_url, sort_order) VALUES (?, ?, ?)");
                 $stmt->execute([$project_id, $media_url, $order]);
@@ -230,22 +347,64 @@ try {
     $pdo->exec("ALTER TABLE projects MODIFY thumbnail_url LONGTEXT");
     $pdo->exec("ALTER TABLE project_gallery MODIFY media_url LONGTEXT");
     
+    // Check existing columns to avoid redundant ALTER commands
+    $existing_columns = $pdo->query("DESCRIBE projects")->fetchAll(PDO::FETCH_COLUMN);
+
     // Missing Core Metadata & Pulse Metrics
     $columns_to_add = [
-        "lvl0_login_url VARCHAR(500)", "lvl0_user VARCHAR(255)", "lvl0_pass VARCHAR(255)", "lvl0_direct_url VARCHAR(500)", "lvl0_note TEXT",
-        "lvl1_login_url VARCHAR(500)", "lvl1_user VARCHAR(255)", "lvl1_pass VARCHAR(255)", "lvl1_direct_url VARCHAR(500)", "lvl1_note TEXT",
-        "lvl2_login_url VARCHAR(500)", "lvl2_user VARCHAR(255)", "lvl2_pass VARCHAR(255)", "lvl2_direct_url VARCHAR(500)", "lvl2_note TEXT",
-        "meta_title VARCHAR(255)", "wa_message TEXT", "speed INT DEFAULT 98", "is_pinned BOOLEAN DEFAULT FALSE"
+        "lvl0_login_url" => "VARCHAR(500)", "lvl0_user" => "VARCHAR(255)", "lvl0_pass" => "VARCHAR(255)", "lvl0_direct_url" => "VARCHAR(500)", "lvl0_note" => "TEXT",
+        "lvl1_login_url" => "VARCHAR(500)", "lvl1_user" => "VARCHAR(255)", "lvl1_pass" => "VARCHAR(255)", "lvl1_direct_url" => "VARCHAR(500)", "lvl1_note" => "TEXT",
+        "lvl2_login_url" => "VARCHAR(500)", "lvl2_user" => "VARCHAR(255)", "lvl2_pass" => "VARCHAR(255)", "lvl2_direct_url" => "VARCHAR(500)", "lvl2_note" => "TEXT",
+        "meta_title" => "VARCHAR(255)", "wa_message" => "TEXT", "speed" => "INT DEFAULT 98", "is_pinned" => "BOOLEAN DEFAULT FALSE"
+    ];
+
+    $settings_columns_to_add = [
+        "smtp_host" => "VARCHAR(255)", "smtp_port" => "INT DEFAULT 587", "smtp_user" => "VARCHAR(255)", "smtp_pass" => "VARCHAR(255)", 
+        "smtp_secure" => "VARCHAR(10) DEFAULT 'tls'", "smtp_from_email" => "VARCHAR(255)", "smtp_from_name" => "VARCHAR(255)",
+        "admin_otp" => "VARCHAR(10)", "admin_otp_expires" => "DATETIME", "otp_enabled" => "BOOLEAN DEFAULT FALSE"
     ];
     
-    foreach ($columns_to_add as $col) {
-        try {
-            $pdo->exec("ALTER TABLE projects ADD COLUMN $col");
-        } catch (Exception $e) { /* Column likely already exists, bypassing protocol */ }
+    foreach ($columns_to_add as $name => $type) {
+        if (!in_array($name, $existing_columns)) {
+            $pdo->exec("ALTER TABLE projects ADD COLUMN $name $type");
+        }
     }
-} catch(Exception $e) {}
 
-$projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetchAll();
+    // Ensure settings table has a unique index on setting_key if it doesn't
+    try {
+        $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_setting_key ON settings(setting_key)");
+    } catch(Exception $e) {}
+
+} catch(Exception $e) {
+    error_log("SCHEMA_SYNC_ERROR: " . $e->getMessage());
+}
+
+$item_limit = 5;
+$current_p = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
+$p_offset = ($current_p - 1) * $item_limit;
+
+$total_nodes = $pdo->query("SELECT COUNT(*) FROM projects")->fetchColumn();
+$total_node_pages = ceil($total_nodes / $item_limit);
+
+$stmt = $pdo->prepare("SELECT * FROM projects ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':limit', $item_limit, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $p_offset, PDO::PARAM_INT);
+$stmt->execute();
+$projects = $stmt->fetchAll();
+
+foreach ($projects as &$p) {
+    $stmt_tech = $pdo->prepare("SELECT name FROM tech_stacks WHERE project_id = ?");
+    $stmt_tech->execute([$p['id']]);
+    $p['tech_stack'] = $stmt_tech->fetchAll(PDO::FETCH_COLUMN);
+
+    $stmt_keys = $pdo->prepare("SELECT keyword FROM keywords WHERE project_id = ?");
+    $stmt_keys->execute([$p['id']]);
+    $p['keywords'] = $stmt_keys->fetchAll(PDO::FETCH_COLUMN);
+
+    $stmt_gal = $pdo->prepare("SELECT media_url FROM project_gallery WHERE project_id = ? ORDER BY sort_order ASC");
+    $stmt_gal->execute([$p['id']]);
+    $p['gallery'] = $stmt_gal->fetchAll(PDO::FETCH_COLUMN);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -317,6 +476,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
         <div class="flex gap-4 mb-8 overflow-x-auto pb-2">
             <button onclick="switchTab('posting')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-orange-600 text-black shadow-lg" data-tab="posting">postingProjects</button>
             <button onclick="switchTab('system')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="system">systemConfiguration</button>
+            <button onclick="switchTab('security')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="security">securityVault</button>
             <button onclick="switchTab('api')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="api">integrationVault</button>
         </div>
 
@@ -333,6 +493,8 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                 </div>
 
                 <form method="POST" class="space-y-6" id="project-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                    <input type="hidden" name="project_id" id="f-id" value="">
                     <input type="hidden" name="speed" id="f-speed" value="98">
                     
                     <div class="space-y-4">
@@ -478,9 +640,14 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                         </div>
                     </div>
 
-                    <button type="submit" name="save_project" class="w-full py-5 bg-white text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:bg-orange-500 transition-all shadow-xl text-center">
-                        synthesizeCommitToNode
-                    </button>
+                    <div class="flex flex-col gap-4">
+                        <button type="submit" name="save_project" id="save-btn" class="w-full py-5 bg-white text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:bg-orange-500 transition-all shadow-xl text-center">
+                            synthesizeCommitToNode
+                        </button>
+                        <button type="button" id="cancel-edit" onclick="cancelEdit()" class="hidden w-full py-3 bg-zinc-900 text-zinc-500 font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 hover:bg-white/5 transition-all text-center">
+                            Abort & Reset Protocol
+                        </button>
+                    </div>
                 </form>
             </div>
 
@@ -505,6 +672,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                             </div>
                         </div>
                         <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
+                            <button type="button" onclick='editNode(<?php echo htmlspecialchars(json_encode($p), ENT_QUOTES, "UTF-8"); ?>)' class="px-4 py-2 rounded-lg bg-white/10 text-white border border-white/10 font-black uppercase text-[9px] tracking-widest hover:bg-white hover:text-black transition-all">EDIT</button>
                             <a href="?toggle_pin=<?php echo $p['id']; ?>" class="px-4 py-2 rounded-lg <?php echo $p['is_pinned'] ? 'bg-orange-600/20 text-orange-500 border border-orange-500/20' : 'bg-white/5 text-zinc-500' ?> font-black uppercase text-[9px] tracking-widest hover:brightness-125 transition-all">
                                 <?php echo $p['is_pinned'] ? 'PINNED' : 'PIN TO HERO'; ?>
                             </a>
@@ -513,6 +681,29 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     </div>
                     <?php endforeach; ?>
                 </div>
+
+                <!-- Pagination Controls -->
+                <?php if($total_node_pages > 1): ?>
+                <div class="flex justify-center items-center gap-4 pt-8">
+                    <?php if($current_p > 1): ?>
+                        <a href="?p=<?php echo $current_p - 1; ?>&selected_tab=posting" class="px-5 py-2 glass rounded-lg text-[9px] font-black uppercase text-zinc-500 hover:text-white transition-all">← Recall Cluster</a>
+                    <?php endif; ?>
+                    
+                    <div class="flex gap-2">
+                        <?php 
+                        $start = max(1, $current_p - 2);
+                        $end = min($total_node_pages, $current_p + 2);
+                        for($i = $start; $i <= $end; $i++): 
+                        ?>
+                            <a href="?p=<?php echo $i; ?>&selected_tab=posting" class="w-8 h-8 flex items-center justify-center rounded-lg text-[9px] font-black transition-all <?php echo $i === $current_p ? 'bg-orange-600 text-black shadow-lg shadow-orange-600/20' : 'glass text-zinc-500 hover:text-white'; ?>"><?php echo $i; ?></a>
+                        <?php endfor; ?>
+                    </div>
+
+                    <?php if($current_p < $total_node_pages): ?>
+                        <a href="?p=<?php echo $current_p + 1; ?>&selected_tab=posting" class="px-5 py-2 glass rounded-lg text-[9px] font-black uppercase text-zinc-500 hover:text-white transition-all">Next Cluster →</a>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -524,6 +715,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     <span class="text-[8px] font-mono text-zinc-600">v4.8 // IDENTITY CLUSTER</span>
                 </div>
                 <form method="POST" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                     <?php
                     $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
                     $s = [];
@@ -559,6 +751,51 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
 
                     <button type="submit" name="update_settings" class="w-full py-5 bg-orange-600 text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:brightness-110 transition-all shadow-xl">
                         commitSystemChanges
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Security & Mail Tab -->
+        <div id="tab-security" class="hidden space-y-8">
+            <div class="glass p-10 rounded-2xl space-y-8">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Security & Mail Protocol</h2>
+                    <span class="text-[8px] font-mono text-zinc-600">ENCRYPTION: AES-256</span>
+                </div>
+                <form method="POST" class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-6">
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-white/5 pb-2">Admin OTP Security</h3>
+                            <div class="flex items-center justify-between p-4 glass rounded-xl border-white/5">
+                                <span class="text-[10px] font-bold uppercase text-zinc-500">Enable OTP Email Verification</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="otp_enabled" value="1" class="sr-only peer" <?php echo ($s['otp_enabled'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                                    <div class="w-11 h-6 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                                </label>
+                            </div>
+                            <p class="text-[8px] font-mono text-zinc-600 uppercase italic">Requires functioning SMTP node to prevent lockout.</p>
+                        </div>
+
+                        <div class="space-y-6">
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-white/5 pb-2">SMTP Node Configuration</h3>
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="text" name="smtp_host" value="<?php echo htmlspecialchars($s['smtp_host'] ?? ''); ?>" placeholder="smtp.hostname.com" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-[10px]">
+                                    <input type="number" name="smtp_port" value="<?php echo htmlspecialchars($s['smtp_port'] ?? '587'); ?>" placeholder="587" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-[10px]">
+                                </div>
+                                <input type="text" name="smtp_user" value="<?php echo htmlspecialchars($s['smtp_user'] ?? ''); ?>" placeholder="smtp-user@identity.com" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-[10px]">
+                                <input type="password" name="smtp_pass" value="<?php echo htmlspecialchars($s['smtp_pass'] ?? ''); ?>" placeholder="••••••••••••" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-[10px]">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="text" name="smtp_from_email" value="<?php echo htmlspecialchars($s['smtp_from_email'] ?? ''); ?>" placeholder="from@cyberpulse.local" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-[10px]">
+                                    <input type="text" name="smtp_from_name" value="<?php echo htmlspecialchars($s['smtp_from_name'] ?? ''); ?>" placeholder="CyberPulse Admin" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono text-[10px]">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" name="update_settings" class="w-full py-5 bg-orange-600 text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:brightness-110 transition-all shadow-xl">
+                        synchSecurityMatrix
                     </button>
                 </form>
             </div>
@@ -729,6 +966,66 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                 btn.innerText = originalText;
                 btn.disabled = false;
             }
+        }
+
+        function editNode(p) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('f-id').value = p.id;
+            document.getElementById('f-title').value = p.title;
+            document.getElementById('f-url').value = p.site_url;
+            document.getElementById('f-thumb').value = p.thumbnail_url;
+            document.getElementById('f-content').value = p.content;
+            document.getElementById('f-type').value = p.project_type;
+            document.getElementById('f-tech').value = (p.tech_stack || []).join(', ');
+            document.getElementById('f-keywords').value = (p.keywords || []).join(', ');
+            document.getElementById('f-meta-title').value = p.meta_title || '';
+            document.getElementById('f-wa').value = p.wa_message || '';
+            document.getElementById('f-speed').value = p.speed || 98;
+
+            // Multi-tier fields
+            const tiers = ['lvl0', 'lvl1', 'lvl2'];
+            const fields = ['login_url', 'user', 'pass', 'direct_url', 'note'];
+            tiers.forEach(t => {
+                fields.forEach(f => {
+                    const el = document.getElementsByName(t + '_' + f)[0];
+                    if (el) el.value = p[t + '_' + f] || '';
+                });
+            });
+
+            // Gallery
+            // Clear current gallery previews first
+            for(let i=0; i<5; i++) { removeGallery(i); }
+
+            if (p.gallery && p.gallery.length > 0) {
+                p.gallery.forEach((url, i) => {
+                    if (i < 5) {
+                        document.getElementById('gallery-input-' + i).value = url;
+                        const preview = document.getElementById('gallery-preview-' + i);
+                        preview.src = url;
+                        preview.classList.remove('hidden');
+                        document.getElementById('gallery-remove-' + i).classList.remove('hidden');
+                    }
+                });
+            }
+
+            // UI Updates
+            document.getElementById('save-btn').innerText = 'Update Active Node';
+            document.getElementById('cancel-edit').classList.remove('hidden');
+            document.querySelector('#tab-posting h2.text-orange-500').innerText = 'Node Modification Sequence';
+        }
+
+        function cancelEdit() {
+            document.getElementById('project-form').reset();
+            document.getElementById('f-id').value = '';
+            
+            // Clear gallery previews explicitly
+            for(let i=0; i<5; i++) {
+                removeGallery(i);
+            }
+
+            document.getElementById('save-btn').innerText = 'synthesizeCommitToNode';
+            document.getElementById('cancel-edit').classList.add('hidden');
+            document.querySelector('#tab-posting h2.text-orange-500').innerText = 'Node Deployment';
         }
 
         async function generateAI() {

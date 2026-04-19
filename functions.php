@@ -25,6 +25,11 @@ function render_media($url, $class = "w-full h-full object-cover", $props = "") 
  * AI Integration via cURL (Gemini or DeepSeek)
  */
 function generate_project_pitch($api_key, $target_url, $agent = 'gemini', $title_context = "Determine from content") {
+    // Gemini Free Tier Integration: Use system environment variable if key is missing
+    if ($agent === 'gemini' && empty($api_key)) {
+        $api_key = getenv('GEMINI_API_KEY');
+    }
+
     if ($agent === 'deepseek') {
         $endpoint = "https://api.deepseek.com/chat/completions";
         $model = "deepseek-chat";
@@ -194,6 +199,34 @@ function check_deepseek_balance($api_key) {
     $res = curl_exec($ch);
     curl_close($ch);
     return json_decode($res, true);
+}
+
+/**
+ * Email Dispatch Protocol (Respects SMTP Identity)
+ */
+function send_email($to, $subject, $message, $s) {
+    $from_name = $s['smtp_from_name'] ?? 'CyberPulse Admin';
+    $from_email = $s['smtp_from_email'] ?? 'noreply@cyberpulse.local';
+    
+    $headers = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-type:text/html;charset=UTF-8\r\n";
+    $headers .= "From: $from_name <$from_email>\r\n";
+    $headers .= "Reply-To: $from_email\r\n";
+    $headers .= "X-Mailer: PHP/" . phpversion();
+
+    // Integration Note: In high-security production environments, 
+    // replacing this with PHPMailer and the configured SMTP host/port/pass is recommended.
+    return @mail($to, $subject, $message, $headers);
+}
+
+/**
+ * Universal Input Sanitizer
+ */
+function sanitize($data) {
+    if (is_array($data)) {
+        return array_map('sanitize', $data);
+    }
+    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
 /**

@@ -31,8 +31,8 @@ $keywords = $key_stmt->fetchAll();
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo $project['title']; ?> | Cyber-Pulse</title>
-    <meta name="description" content="<?php echo $project['meta_description']; ?>">
+    <title><?php echo sanitize($project['title']); ?> | Cyber-Pulse</title>
+    <meta name="description" content="<?php echo sanitize($project['meta_description'] ?? ''); ?>">
     <script>
       (function() {
         // Advanced Extension Guard: Mocking Provider
@@ -122,7 +122,7 @@ $keywords = $key_stmt->fetchAll();
                 </button>
                 <div>
                     <h2 class="text-xs font-black uppercase tracking-widest text-orange-500">Live Interface Projection</h2>
-                    <p class="text-[8px] font-mono text-zinc-600 uppercase">Interactive Node Streaming // <?php echo strtoupper($project['slug']); ?></p>
+                    <p class="text-[8px] font-mono text-zinc-600 uppercase">Interactive Node Streaming // <?php echo sanitize(strtoupper($project['slug'])); ?></p>
                 </div>
             </div>
             
@@ -184,7 +184,7 @@ $keywords = $key_stmt->fetchAll();
             <div class="flex flex-wrap gap-2">
                 <?php foreach($keywords as $k): ?>
                 <span class="px-4 py-1.5 glass rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 border-white/5">
-                    #<?php echo $k['keyword']; ?>
+                    #<?php echo sanitize($k['keyword']); ?>
                 </span>
                 <?php endforeach; ?>
             </div>
@@ -198,20 +198,20 @@ $keywords = $key_stmt->fetchAll();
                     Master Protocol Active
                 </div>
                 <h1 class="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.8] text-glow-orange">
-                    <?php echo $project['title']; ?>
+                    <?php echo sanitize($project['title']); ?>
                 </h1>
                 <div class="flex flex-wrap gap-3">
                     <?php foreach($tech_stack as $t): ?>
                     <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-zinc-700"></span>
-                        <?php echo $t['name']; ?>
+                        <?php echo sanitize($t['name']); ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
             </div>
 
             <div class="prose max-w-none text-xl">
-                <?php echo nl2br($project['content']); ?>
+                <?php echo nl2br(sanitize($project['content'])); ?>
             </div>
 
             <!-- Multi-Tier Interface Access Protocol -->
@@ -247,8 +247,8 @@ $keywords = $key_stmt->fetchAll();
                             <div class="glass p-3 rounded-xl">
                                 <span class="block text-[8px] uppercase text-zinc-600 font-bold mb-1">Identity</span>
                                 <div class="flex justify-between items-center font-mono text-[10px]">
-                                    <span class="truncate"><?php echo $project[$prefix.'user']; ?></span>
-                                    <button onclick="copyToClipboard('<?php echo $project[$prefix.'user']; ?>')" class="text-zinc-700 hover:text-white transition-colors uppercase text-[8px] font-bold">Copy</button>
+                                    <span class="truncate"><?php echo sanitize($project[$prefix.'user']); ?></span>
+                                    <button onclick="copyToClipboard('<?php echo sanitize($project[$prefix.'user']); ?>')" class="text-zinc-700 hover:text-white transition-colors uppercase text-[8px] font-bold">Copy</button>
                                 </div>
                             </div>
                             <?php endif; ?>
@@ -257,7 +257,7 @@ $keywords = $key_stmt->fetchAll();
                                 <span class="block text-[8px] uppercase text-zinc-600 font-bold mb-1">Passphrase</span>
                                 <div class="flex justify-between items-center font-mono text-[10px]">
                                     <span class="truncate">••••••••</span>
-                                    <button onclick="copyToClipboard('<?php echo $project[$prefix.'pass']; ?>')" class="text-zinc-700 hover:text-white transition-colors uppercase text-[8px] font-bold">Copy</button>
+                                    <button onclick="copyToClipboard('<?php echo sanitize($project[$prefix.'pass']); ?>')" class="text-zinc-700 hover:text-white transition-colors uppercase text-[8px] font-bold">Copy</button>
                                 </div>
                             </div>
                             <?php endif; ?>
@@ -266,7 +266,7 @@ $keywords = $key_stmt->fetchAll();
                         <?php if(!empty($project[$prefix.'note'])): ?>
                         <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl">
                             <span class="block text-[8px] uppercase text-zinc-600 font-bold mb-1 italic">Legacy Payload Note</span>
-                            <div class="text-[10px] font-mono text-zinc-400"><?php echo $project[$prefix.'note']; ?></div>
+                            <div class="text-[10px] font-mono text-zinc-400"><?php echo sanitize($project[$prefix.'note']); ?></div>
                         </div>
                         <?php endif; ?>
 

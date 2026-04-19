@@ -87,7 +87,7 @@ if (count($hero_projects) < 4) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $appTitle; ?> | Elite Portfolio Engine</title>
+    <title><?php echo sanitize($appTitle); ?> | Elite Portfolio Engine</title>
     <script>
       (function() {
         // Advanced Extension Guard: Mocking Provider
@@ -156,8 +156,8 @@ if (count($hero_projects) < 4) {
         <div class="text-xl font-black italic tracking-tighter uppercase">
             <?php 
                 $parts = explode('-', $appTitle);
-                echo $parts[0];
-                if(isset($parts[1])) echo " <span class='sharp-orange'>{$parts[1]}</span>";
+                echo sanitize($parts[0]);
+                if(isset($parts[1])) echo " <span class='sharp-orange'>" . sanitize($parts[1]) . "</span>";
             ?>
         </div>
         <div class="hidden md:flex gap-8">
@@ -178,7 +178,7 @@ if (count($hero_projects) < 4) {
                     Future Proofed <br/> <span class="text-zinc-500">Engineering</span>
                 </h1>
                 <p class="text-zinc-400 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">
-                    <?php echo $heroSubtext; ?>
+                    <?php echo sanitize($heroSubtext); ?>
                 </p>
             </div>
             
@@ -187,7 +187,7 @@ if (count($hero_projects) < 4) {
                 <a href="project.php?slug=<?php echo $hp['slug']; ?>" class="group block aspect-square glass rounded-[24px] overflow-hidden relative border border-white/10 hover:border-orange-500/40 transition-all shadow-2xl">
                     <?php echo render_media($hp['thumbnail_url'], "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"); ?>
                     <div class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-[2px]">
-                        <div class="text-[9px] font-black uppercase tracking-widest text-white truncate"><?php echo $hp['title']; ?></div>
+                        <div class="text-[9px] font-black uppercase tracking-widest text-white truncate"><?php echo sanitize($hp['title']); ?></div>
                         <?php if($hp['is_pinned']): ?>
                             <div class="text-[7px] font-mono text-orange-500 uppercase mt-1">Priority Node 0<?php echo $hp['id']; ?></div>
                         <?php endif; ?>
@@ -203,9 +203,9 @@ if (count($hero_projects) < 4) {
                 <div class="flex flex-col md:flex-row justify-between items-center gap-8">
                     <div class="flex flex-wrap gap-4">
                         <?php foreach(['all', 'web', 'app'] as $t): ?>
-                        <a href="?filter=<?php echo $t; ?>&search=<?php echo htmlspecialchars($search); ?>&<?php echo http_build_query(['tech' => $tech_filter]); ?>" 
+                        <a href="?filter=<?php echo urlencode($t); ?>&search=<?php echo urlencode($search); ?>&<?php echo http_build_query(['tech' => $tech_filter]); ?>" 
                            class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all <?php echo $filter === $t ? 'bg-orange-600 text-black shadow-lg shadow-orange-600/20' : 'glass text-zinc-500 hover:text-white'; ?>">
-                            <?php echo $t; ?>
+                            <?php echo sanitize($t); ?>
                         </a>
                         <?php endforeach; ?>
                     </div>
@@ -236,10 +236,10 @@ if (count($hero_projects) < 4) {
                             $new_techs = $is_active ? array_diff($tech_filter, [$tech]) : array_merge($tech_filter, [$tech]);
                             $query = http_build_query(['filter' => $filter, 'search' => $search, 'tech' => $new_techs]);
                         ?>
-                        <a href="?<?php echo $query; ?>" 
+                        <a href="?<?php echo sanitize($query); ?>" 
                            class="px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all 
                            <?php echo $is_active ? 'bg-orange-600 border-orange-600 text-black shadow-lg shadow-orange-600/10' : 'bg-white/2 border-white/5 text-zinc-500 hover:border-white/20 hover:text-white'; ?>">
-                            <?php echo $tech; ?>
+                            <?php echo sanitize($tech); ?>
                         </a>
                         <?php endforeach; ?>
                     </div>
@@ -257,12 +257,12 @@ if (count($hero_projects) < 4) {
                         <?php echo render_media($proj['thumbnail_url']); ?>
                     </div>
                     <div class="space-y-3">
-                        <h3 class="font-black text-lg uppercase truncate italic leading-none pt-1"><?php echo $proj['title']; ?></h3>
+                        <h3 class="font-black text-lg uppercase truncate italic leading-none pt-1"><?php echo sanitize($proj['title']); ?></h3>
                         
                         <?php if(isset($tech_map[$proj['id']])): ?>
                         <div class="flex flex-wrap gap-1">
                             <?php foreach(array_slice($tech_map[$proj['id']], 0, 3) as $t): ?>
-                            <span class="text-[7px] font-black uppercase px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-zinc-500"><?php echo $t; ?></span>
+                            <span class="text-[7px] font-black uppercase px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-zinc-500"><?php echo sanitize($t); ?></span>
                             <?php endforeach; ?>
                             <?php if(count($tech_map[$proj['id']]) > 3): ?>
                                 <span class="text-[7px] font-black uppercase px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-zinc-500">+<?php echo count($tech_map[$proj['id']]) - 3; ?></span>
@@ -271,7 +271,7 @@ if (count($hero_projects) < 4) {
                         <?php endif; ?>
 
                         <div class="flex justify-between items-center text-[10px] font-mono text-zinc-500 uppercase tracking-tighter pt-2 border-t border-white/5">
-                            <span><?php echo $proj['project_type']; ?> Node</span>
+                            <span><?php echo sanitize($proj['project_type']); ?> Node</span>
                             <span class="group-hover:text-orange-500 transition-colors">Access Portal →</span>
                         </div>
                     </div>
