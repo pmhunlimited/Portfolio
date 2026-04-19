@@ -106,10 +106,10 @@ $keywords = $key_stmt->fetchAll();
 <body class="selection:bg-orange-600 selection:text-white p-6 md:p-12 min-h-screen">
     <nav class="fixed top-0 left-0 w-full z-50 glass border-b border-white/5 px-8 py-4 flex justify-between items-center">
         <a href="index.php" class="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 hover:text-white transition-all flex items-center gap-3 group">
-            <span class="group-hover:-translate-x-1 transition-transform">←</span> Return_to_Grid
+            <span class="group-hover:-translate-x-1 transition-transform">←</span> Return to Grid
         </a>
         <div class="flex gap-4">
-            <button onclick="togglePreview()" class="text-[9px] font-black uppercase tracking-widest text-orange-500 border border-orange-500/20 px-4 py-1.5 rounded-lg glass hover:bg-orange-500 hover:text-black transition-all">Project_Projection</button>
+            <button onclick="togglePreview()" class="text-[9px] font-black uppercase tracking-widest text-orange-500 border border-orange-500/20 px-4 py-1.5 rounded-lg glass hover:bg-orange-500 hover:text-black transition-all">Project Projection</button>
         </div>
     </nav>
 
@@ -121,7 +121,7 @@ $keywords = $key_stmt->fetchAll();
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
                 <div>
-                    <h2 class="text-xs font-black uppercase tracking-widest text-orange-500">Live_Interface_Projection</h2>
+                    <h2 class="text-xs font-black uppercase tracking-widest text-orange-500">Live Interface Projection</h2>
                     <p class="text-[8px] font-mono text-zinc-600 uppercase">Interactive Node Streaming // <?php echo strtoupper($project['slug']); ?></p>
                 </div>
             </div>
@@ -139,7 +139,7 @@ $keywords = $key_stmt->fetchAll();
             </div>
 
             <a href="<?php echo $project['site_url']; ?>" target="_blank" class="px-6 py-3 bg-white text-black text-[9px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-orange-500 transition-all flex items-center gap-3">
-                Full_External_Access
+                Full External Access
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
             </a>
         </div>
@@ -160,7 +160,7 @@ $keywords = $key_stmt->fetchAll();
                 <?php echo render_media($project['thumbnail_url'], "w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700"); ?>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                 <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
-                    <div class="px-6 py-3 glass rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] border-orange-500/50 text-orange-500">Project_Projection_Init</div>
+                    <div class="px-6 py-3 glass rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] border-orange-500/50 text-orange-500">Project Projection Init</div>
                 </div>
             </div>
 
@@ -195,7 +195,7 @@ $keywords = $key_stmt->fetchAll();
             <div class="space-y-6">
                 <div class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-orange-500 animate-pulse">
                     <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-                    Master_Protocol_Active
+                    Master Protocol Active
                 </div>
                 <h1 class="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.8] text-glow-orange">
                     <?php echo $project['title']; ?>
@@ -216,14 +216,14 @@ $keywords = $key_stmt->fetchAll();
 
             <!-- Multi-Tier Interface Access Protocol -->
             <div class="space-y-6 pt-12 border-t border-white/5">
-                <h3 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Tiered_Interface_Access</h3>
+                <h3 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Tiered Interface Access</h3>
                 
                 <div class="grid grid-cols-1 gap-4">
                     <?php 
                     $tiers = [
-                        ['id' => '0', 'name' => 'Super_Admin', 'prefix' => 'lvl0_', 'color' => 'orange'],
-                        ['id' => '1', 'name' => 'Restricted_Admin', 'prefix' => 'lvl1_', 'color' => 'zinc'],
-                        ['id' => '2', 'name' => 'Standard_User', 'prefix' => 'lvl2_', 'color' => 'blue']
+                        ['id' => '0', 'name' => 'Super Admin', 'prefix' => 'lvl0_', 'color' => 'orange'],
+                        ['id' => '1', 'name' => 'Restricted Admin', 'prefix' => 'lvl1_', 'color' => 'zinc'],
+                        ['id' => '2', 'name' => 'Standard User', 'prefix' => 'lvl2_', 'color' => 'blue']
                     ];
                     foreach($tiers as $tier): 
                         $prefix = $tier['prefix'];
@@ -233,12 +233,12 @@ $keywords = $key_stmt->fetchAll();
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-3">
                                 <div class="w-1.5 h-6 bg-<?php echo $tier['color']; ?>-600 rounded-full"></div>
-                                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-<?php echo $tier['color']; ?>-500">Access_Level_<?php echo $tier['id']; ?>: <?php echo $tier['name']; ?></span>
+                                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-<?php echo $tier['color']; ?>-500">Access Level <?php echo $tier['id']; ?>: <?php echo $tier['name']; ?></span>
                             </div>
                             <?php if(!empty($project[$prefix.'direct_url'])): ?>
-                            <a href="<?php echo $project[$prefix.'direct_url']; ?>" target="_blank" class="px-4 py-1.5 bg-<?php echo $tier['color']; ?>-600 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-110">One-Click_Bypass</a>
+                            <a href="<?php echo $project[$prefix.'direct_url']; ?>" target="_blank" class="px-4 py-1.5 bg-<?php echo $tier['color']; ?>-600 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-110">One-Click Bypass</a>
                             <?php elseif(!empty($project[$prefix.'user']) && !empty($project[$prefix.'pass']) && !empty($project[$prefix.'login_url'])): ?>
-                            <button onclick="attemptLogin('<?php echo $project[$prefix.'login_url']; ?>', '<?php echo $project[$prefix.'user']; ?>', '<?php echo $project[$prefix.'pass']; ?>')" class="px-4 py-1.5 bg-<?php echo $tier['color']; ?>-600 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-110">Auto_Deploy_Access</button>
+                            <button onclick="attemptLogin('<?php echo $project[$prefix.'login_url']; ?>', '<?php echo $project[$prefix.'user']; ?>', '<?php echo $project[$prefix.'pass']; ?>')" class="px-4 py-1.5 bg-<?php echo $tier['color']; ?>-600 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-110">Auto Deploy Access</button>
                             <?php endif; ?>
                         </div>
 
@@ -265,13 +265,13 @@ $keywords = $key_stmt->fetchAll();
 
                         <?php if(!empty($project[$prefix.'note'])): ?>
                         <div class="p-3 bg-white/[0.02] border border-white/5 rounded-xl">
-                            <span class="block text-[8px] uppercase text-zinc-600 font-bold mb-1 italic">Legacy_Payload_Note</span>
+                            <span class="block text-[8px] uppercase text-zinc-600 font-bold mb-1 italic">Legacy Payload Note</span>
                             <div class="text-[10px] font-mono text-zinc-400"><?php echo $project[$prefix.'note']; ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if(!empty($project[$prefix.'login_url']) && empty($project[$prefix.'direct_url'])): ?>
-                        <a href="<?php echo $project[$prefix.'login_url']; ?>" target="_blank" class="block w-full text-center py-2 border border-white/5 hover:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-all">Manual_Login_Gateway</a>
+                        <a href="<?php echo $project[$prefix.'login_url']; ?>" target="_blank" class="block w-full text-center py-2 border border-white/5 hover:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-all">Manual Login Gateway</a>
                         <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
@@ -346,12 +346,12 @@ $keywords = $key_stmt->fetchAll();
                 </script>
                 <a href="<?php echo $project['site_url']; ?>" target="_blank" 
                    class="group relative w-full md:w-auto px-12 py-5 bg-orange-600 text-black font-black uppercase tracking-[0.3em] text-xs rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-[0_0_50px_rgba(234,88,12,0.2)]">
-                    <span class="relative z-10">Launch_Live_Interface</span>
+                    <span class="relative z-10">Launch Live Interface</span>
                     <div class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12"></div>
                 </a>
 
                 <div class="space-y-1">
-                    <div class="text-[9px] font-black uppercase text-zinc-600 tracking-widest leading-none">Node_ID_Authorization</div>
+                    <div class="text-[9px] font-black uppercase text-zinc-600 tracking-widest leading-none">Node ID Authorization</div>
                     <div class="text-xs font-mono text-zinc-300 font-bold"><?php echo strtoupper($project['slug']); ?>-V1.0</div>
                 </div>
             </div>
@@ -360,13 +360,13 @@ $keywords = $key_stmt->fetchAll();
 
     <!-- Visual Gallery Matrix -->
     <section class="max-w-7xl mx-auto py-32 space-y-12">
-        <h2 class="text-xs font-black uppercase tracking-[0.5em] text-zinc-700 text-center">Visual_Identity_Nodes</h2>
+        <h2 class="text-xs font-black uppercase tracking-[0.5em] text-zinc-700 text-center">Visual Identity Nodes</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
             <?php foreach($gallery as $img): ?>
             <div class="group aspect-square glass rounded-3xl overflow-hidden relative border border-white/5 hover:border-orange-500/30 transition-all">
                 <?php echo render_media($img['media_url'], "w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"); ?>
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-white border-b-2 border-orange-600">View_Media</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-white border-b-2 border-orange-600">View Media</span>
                 </div>
             </div>
             <?php endforeach; ?>

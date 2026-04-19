@@ -58,6 +58,11 @@ if (empty($response['screenshot'])) {
 if (!$vitals_only) {
     $agent = $settings['default_ai_agent'] ?? 'gemini';
     $api_key = ($agent === 'deepseek') ? ($settings['deepseek_api_key'] ?? '') : ($settings['gemini_api_key'] ?? '');
+    
+    // AI Studio Environment Fallback for Gemini
+    if ($agent === 'gemini' && empty($api_key)) {
+        $api_key = getenv('GEMINI_API_KEY');
+    }
 
     if ($api_key) {
         $ai_data = generate_project_pitch($api_key, $url, $agent, $title);

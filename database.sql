@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS projects (
     slug VARCHAR(255) UNIQUE NOT NULL,
     content TEXT,
     site_url VARCHAR(500),
-    thumbnail_url VARCHAR(500),
+    thumbnail_url LONGTEXT,
     project_type ENUM('web', 'app') DEFAULT 'web',
     wa_message TEXT,
     meta_title VARCHAR(255),
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS project_gallery (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT,
-    media_url VARCHAR(500),
+    media_url LONGTEXT,
     sort_order INT DEFAULT 0,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );

@@ -48,7 +48,7 @@ if (!isset($_SESSION['authorized'])) {
                 <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-orange-600/10 border border-orange-600/20 mb-4 rotate-6">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-orange-600 -rotate-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 </div>
-                <h1 class="text-3xl font-black italic tracking-tighter uppercase glow-orange">Node_Access</h1>
+                <h1 class="text-3xl font-black italic tracking-tighter uppercase glow-orange">Node Access</h1>
                 <p class="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em]">Administrative Bypass Protocol 2.0</p>
             </div>
 
@@ -200,6 +200,12 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
+// Database Maintenance: Ensure LONGTEXT for Base64 screenshots
+try {
+    $pdo->exec("ALTER TABLE projects MODIFY thumbnail_url LONGTEXT");
+    $pdo->exec("ALTER TABLE project_gallery MODIFY media_url LONGTEXT");
+} catch(Exception $e) {}
+
 $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -270,9 +276,9 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
 
         <!-- Admin Tabs -->
         <div class="flex gap-4 mb-8 overflow-x-auto pb-2">
-            <button onclick="switchTab('posting')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-orange-600 text-black shadow-lg" data-tab="posting">Posting_&_Projects</button>
-            <button onclick="switchTab('system')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="system">System_Configuration</button>
-            <button onclick="switchTab('api')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="api">API_&_AI_Nodes</button>
+            <button onclick="switchTab('posting')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-orange-600 text-black shadow-lg" data-tab="posting">Posting & Projects</button>
+            <button onclick="switchTab('system')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="system">System Configuration</button>
+            <button onclick="switchTab('api')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="api">API & AI Nodes</button>
         </div>
 
         <!-- Posting Tab -->
@@ -280,10 +286,10 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
             <!-- Project Entry Form -->
             <div class="glass p-10 rounded-2xl space-y-8">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Node_Deployment</h2>
+                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Node Deployment</h2>
                     <div id="ai-loading" class="hidden flex items-center gap-2 text-[10px] text-orange-500 font-mono italic animate-pulse">
                         <svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span id="ai-status">Agent_Decoding...</span>
+                        <span id="ai-status">Agent Decoding...</span>
                     </div>
                 </div>
 
@@ -296,14 +302,14 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                             <label class="flex-1 cursor-pointer">
                                 <input type="radio" name="mode" value="auto" class="hidden peer" checked onchange="toggleDeploymentMode('auto')">
                                 <div class="glass p-4 rounded-xl border border-white/5 peer-checked:border-orange-500 peer-checked:bg-orange-600/10 transition-all text-center">
-                                    <div class="text-[10px] font-black uppercase text-zinc-400 peer-checked:text-orange-500">Automated_Deploy</div>
+                                    <div class="text-[10px] font-black uppercase text-zinc-400 peer-checked:text-orange-500">Automated Deploy</div>
                                     <div class="text-[8px] text-zinc-600 uppercase mt-1">AI-Powered Synthesis</div>
                                 </div>
                             </label>
                             <label class="flex-1 cursor-pointer">
                                 <input type="radio" name="mode" value="manual" class="hidden peer" onchange="toggleDeploymentMode('manual')">
                                 <div class="glass p-4 rounded-xl border border-white/5 peer-checked:border-orange-500 peer-checked:bg-orange-600/10 transition-all text-center">
-                                    <div class="text-[10px] font-black uppercase text-zinc-400 peer-checked:text-orange-500">Manual_Entry</div>
+                                    <div class="text-[10px] font-black uppercase text-zinc-400 peer-checked:text-orange-500">Manual Entry</div>
                                     <div class="text-[8px] text-zinc-600 uppercase mt-1">Surgical Grid Control</div>
                                 </div>
                             </label>
@@ -321,7 +327,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                                 $current_agent = $stmt_agent->fetchColumn() ?: 'gemini';
                                 ?>
                                 <button type="button" id="scan-btn" onclick="generateAI()" class="px-6 bg-orange-600 text-black font-black uppercase italic text-[10px] rounded-xl hover:brightness-110 active:scale-95 transition-all">
-                                    <?php echo strtoupper($current_agent); ?>_SCAN_&_DEPLOY
+                                    <?php echo strtoupper($current_agent); ?> SCAN & DEPLOY
                                 </button>
                             </div>
                         </div>
@@ -335,12 +341,12 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                         <div class="space-y-2">
                             <label class="text-[9px] uppercase font-bold text-zinc-500">Node Cluster Type</label>
                             <select name="type" id="f-type" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 uppercase font-black text-xs">
-                                <option value="web">Web_Interface</option>
-                                <option value="app">Mobile_App</option>
+                                <option value="web">Web Interface</option>
+                                <option value="app">Mobile App</option>
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Master_Thumbnail_URL</label>
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">Master Thumbnail URL</label>
                             <input type="text" name="thumbnail_url" id="f-thumb" placeholder="https://images..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
                         </div>
                     </div>
@@ -374,7 +380,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                                     <input type="file" id="gallery-file-<?php echo $i; ?>" class="hidden" onchange="handleFile(this, <?php echo $i; ?>)">
                                     <input type="hidden" name="gallery_images[]" id="gallery-input-<?php echo $i; ?>">
                                     <img id="gallery-preview-<?php echo $i; ?>" class="hidden absolute inset-0 w-full h-full object-cover">
-                                    <div id="gallery-placeholder-<?php echo $i; ?>" class="text-zinc-700 text-[10px] font-mono group-hover:text-orange-500 transition-colors uppercase">Slot_<?php echo $i; ?></div>
+                                    <div id="gallery-placeholder-<?php echo $i; ?>" class="text-zinc-700 text-[10px] font-mono group-hover:text-orange-500 transition-colors uppercase">Slot <?php echo $i; ?></div>
                                     <div id="gallery-progress-<?php echo $i; ?>" class="hidden absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300" style="width: 0%"></div>
                                     <button type="button" onclick="event.stopPropagation(); removeGallery(<?php echo $i; ?>)" id="gallery-remove-<?php echo $i; ?>" class="hidden absolute top-1 right-1 p-1 bg-red-600 rounded-md text-white hover:bg-red-700 z-10">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -387,36 +393,36 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
 
                     <!-- Multi-Tier Access Matrix -->
                     <div class="space-y-6 pt-6 border-t border-white/5">
-                        <h3 class="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500">Automated_Direct_Login_Matrix</h3>
+                        <h3 class="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500">Automated Direct Login Matrix</h3>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <!-- Level 0: Super Admin -->
                             <div class="glass p-6 rounded-2xl space-y-4 border-orange-500/10">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-orange-500">Tier_0: Super_Admin</label>
+                                <label class="text-[9px] font-black uppercase tracking-widest text-orange-500">Tier 0: Super Admin</label>
                                 <input type="url" name="lvl0_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <input type="text" name="lvl0_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <input type="text" name="lvl0_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="url" name="lvl0_direct_url" placeholder="Bypass_Link (Optional)" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl0_direct_url" placeholder="Bypass Link (Optional)" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <textarea name="lvl0_note" placeholder="Legacy Note/PIN" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
                             </div>
-
+ 
                             <!-- Level 1 -->
                             <div class="glass p-6 rounded-2xl space-y-4 border-zinc-500/10">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-zinc-500">Tier_1: Restricted</label>
+                                <label class="text-[9px] font-black uppercase tracking-widest text-zinc-500">Tier 1: Restricted</label>
                                 <input type="url" name="lvl1_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <input type="text" name="lvl1_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <input type="text" name="lvl1_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="url" name="lvl1_direct_url" placeholder="Bypass_Link" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl1_direct_url" placeholder="Bypass Link" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <textarea name="lvl1_note" placeholder="Note" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
                             </div>
-
+ 
                             <!-- Level 2 -->
                             <div class="glass p-6 rounded-2xl space-y-4 border-blue-500/10">
-                                <label class="text-[9px] font-black uppercase tracking-widest text-blue-500">Tier_2: Standard</label>
+                                <label class="text-[9px] font-black uppercase tracking-widest text-blue-500">Tier 2: Standard</label>
                                 <input type="url" name="lvl2_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <input type="text" name="lvl2_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <input type="text" name="lvl2_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="url" name="lvl2_direct_url" placeholder="Bypass_Link" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl2_direct_url" placeholder="Bypass Link" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
                                 <textarea name="lvl2_note" placeholder="Note" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
                             </div>
                         </div>
@@ -430,7 +436,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
 
             <!-- Existing Nodes -->
             <div class="space-y-4">
-                <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Active_Grid_Nodes</h2>
+                <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Active Grid Nodes</h2>
                 <div class="grid grid-cols-1 gap-4">
                     <?php if(empty($projects)): ?>
                         <div class="glass p-12 text-center text-[10px] font-mono text-zinc-700 uppercase italic">No active nodes detected in sector</div>
@@ -450,7 +456,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                         </div>
                         <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
                             <a href="?toggle_pin=<?php echo $p['id']; ?>" class="px-4 py-2 rounded-lg <?php echo $p['is_pinned'] ? 'bg-orange-600/20 text-orange-500 border border-orange-500/20' : 'bg-white/5 text-zinc-500' ?> font-black uppercase text-[9px] tracking-widest hover:brightness-125 transition-all">
-                                <?php echo $p['is_pinned'] ? 'PINNED' : 'PIN_TO_HERO'; ?>
+                                <?php echo $p['is_pinned'] ? 'PINNED' : 'PIN TO HERO'; ?>
                             </a>
                             <a href="?delete=<?php echo $p['id']; ?>" class="px-4 py-2 rounded-lg bg-red-600/10 text-red-500 border border-red-500/10 font-black uppercase text-[9px] tracking-widest hover:bg-red-600 hover:text-white transition-all" onclick="return confirm('Erase node?')">TERMINATE</a>
                         </div>
@@ -464,8 +470,8 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
         <div id="tab-system" class="hidden space-y-8">
             <div class="glass p-10 rounded-2xl space-y-8">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Core_System_Settings</h2>
-                    <span class="text-[8px] font-mono text-zinc-600">v4.8 // IDENTITY_CLUSTER</span>
+                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Core System Settings</h2>
+                    <span class="text-[8px] font-mono text-zinc-600">v4.8 // IDENTITY CLUSTER</span>
                 </div>
                 <form method="POST" class="space-y-6">
                     <?php
@@ -502,7 +508,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     </div>
 
                     <button type="submit" name="update_settings" class="w-full py-5 bg-orange-600 text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:brightness-110 transition-all shadow-xl">
-                        Commit_System_Changes
+                        Commit System Changes
                     </button>
                 </form>
             </div>
@@ -512,7 +518,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
         <div id="tab-api" class="hidden space-y-8">
             <div class="glass p-10 rounded-2xl space-y-8">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Integrations_Vault</h2>
+                    <h2 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Integrations Vault</h2>
                     <span class="text-[8px] font-mono text-zinc-600">ENCRYPTION: ACTIVE</span>
                 </div>
                 <form method="POST" class="space-y-8">
@@ -520,7 +526,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
                                 <label class="text-[9px] uppercase font-bold text-zinc-400">Gemini AI Key (Node Alpha)</label>
-                                <input type="password" name="gemini_api_key" value="<?php echo htmlspecialchars($s['gemini_api_key'] ?? ''); ?>" placeholder="Enter Gemini Key" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono">
+                                <input type="password" name="gemini_api_key" value="<?php echo htmlspecialchars($s['gemini_api_key'] ?? ''); ?>" placeholder="Enter Gemini Key (Leave empty for System Free Tier)" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono">
                             </div>
                             <div class="space-y-2">
                                 <label class="text-[9px] uppercase font-bold text-zinc-400">DeepSeek AI Key (Node Bravo)</label>
@@ -535,15 +541,15 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                             <div class="space-y-2">
                                 <label class="text-[9px] uppercase font-bold text-orange-500">Default AI Dispatcher</label>
                                 <select name="default_ai_agent" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 uppercase font-black text-xs">
-                                    <option value="gemini" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'gemini' ? 'selected' : ''; ?>>AI_ALPHA: GEMINI_1.5_PRO</option>
-                                    <option value="deepseek" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'deepseek' ? 'selected' : ''; ?>>AI_BRAVO: DEEPSEEK_V3</option>
+                                    <option value="gemini" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'gemini' ? 'selected' : ''; ?>>AI ALPHA: GEMINI 1.5 PRO</option>
+                                    <option value="deepseek" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'deepseek' ? 'selected' : ''; ?>>AI BRAVO: DEEPSEEK V3</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
                     <button type="submit" name="update_settings" class="w-full py-5 bg-white text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:bg-orange-500 transition-all shadow-xl">
-                        Vault_Update_Matrix
+                        Vault Update Matrix
                     </button>
                     <p class="text-center text-[8px] font-mono text-zinc-600 uppercase tracking-widest italic">Note: AI specialists handle all 'Scan & Deploy' operations based on active node choice.</p>
                 </form>
@@ -551,16 +557,16 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                 <!-- AI Usage Stats -->
                 <div class="pt-10 border-t border-white/5 space-y-6">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Node_Usage_Telemetry</h3>
+                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Node Usage Telemetry</h3>
                         <form method="POST" onsubmit="return confirm('Reset all usage metrics?')">
-                            <button type="submit" name="reset_usage" class="text-[8px] uppercase font-bold text-red-500 hover:text-white transition-all bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">Reset_Counters</button>
+                            <button type="submit" name="reset_usage" class="text-[8px] uppercase font-bold text-red-500 hover:text-white transition-all bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">Reset Counters</button>
                         </form>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="glass p-6 rounded-xl space-y-3 relative overflow-hidden group">
                             <div class="flex justify-between items-center relative z-10">
-                                <span class="text-[9px] uppercase font-bold text-zinc-500">Gemini (Node_Alpha)</span>
+                                <span class="text-[9px] uppercase font-bold text-zinc-500">Gemini (Node Alpha)</span>
                                 <span class="text-xs font-black text-orange-500" id="stat-gemini-scans">...</span>
                             </div>
                             <div class="text-[8px] uppercase font-mono text-zinc-600 tracking-tighter">Usage: Scans performed in current cycle</div>
@@ -569,7 +575,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                         
                         <div class="glass p-6 rounded-xl space-y-3 relative overflow-hidden group">
                             <div class="flex justify-between items-center relative z-10">
-                                <span class="text-[9px] uppercase font-bold text-zinc-500">DeepSeek (Node_Bravo)</span>
+                                <span class="text-[9px] uppercase font-bold text-zinc-500">DeepSeek (Node Bravo)</span>
                                 <span class="text-xs font-black text-blue-500" id="stat-deepseek-scans">...</span>
                             </div>
                             <div class="text-[8px] uppercase font-mono text-zinc-600 tracking-tighter" id="stat-deepseek-balance">Balance: Syncing telemetry...</div>
@@ -587,9 +593,9 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
             deploymentMode = mode;
             const btn = document.getElementById('scan-btn');
             if(mode === 'manual') {
-                btn.innerText = 'VITAL_GRID_SCAN';
+                btn.innerText = 'VITAL GRID SCAN';
             } else {
-                btn.innerText = '<?php echo strtoupper($current_agent); ?>_SCAN_&_DEPLOY';
+                btn.innerText = '<?php echo strtoupper($current_agent); ?> SCAN & DEPLOY';
             }
         }
 
@@ -646,7 +652,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
             const loader = document.getElementById('ai-loading');
             const status = document.getElementById('ai-status');
             loader.classList.remove('hidden');
-            status.innerText = deploymentMode === 'auto' ? "Agent_Scanning_Destination..." : "Extracting_Vital_Stats...";
+            status.innerText = deploymentMode === 'auto' ? "Agent Scanning Destination..." : "Extracting Vital Stats...";
             
             try {
                 const res = await fetch('api_ai.php', {
@@ -662,7 +668,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                 
                 if(data.error) throw new Error(data.error);
                 
-                status.innerText = "Synchronizing_Metadata...";
+                status.innerText = "Synchronizing Metadata...";
                 
                 // Common fields (Vitals)
                 if(data.speed) {
@@ -746,7 +752,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
             preview.src = '';
             preview.classList.add('hidden');
             document.getElementById('gallery-remove-' + index).classList.add('hidden');
-            document.getElementById('gallery-placeholder-' + index).innerText = 'Slot_' + index;
+            document.getElementById('gallery-placeholder-' + index).innerText = 'Slot ' + index;
         }
 
         // Initial Tab setup

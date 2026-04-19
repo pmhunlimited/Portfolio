@@ -132,7 +132,7 @@ if (count($hero_projects) < 4) {
         </div>
         <div class="hidden md:flex gap-8">
             <a href="index.php" class="text-[10px] font-black uppercase tracking-widest hover:text-sharp-orange transition-colors">Grid</a>
-            <a href="admin.php" class="text-[10px] font-black uppercase tracking-widest text-[#BF00FF] hover:brightness-110">Security_Portal</a>
+            <a href="admin.php" class="text-[10px] font-black uppercase tracking-widest text-[#BF00FF] hover:brightness-110">Security Portal</a>
         </div>
     </nav>
 
@@ -142,10 +142,10 @@ if (count($hero_projects) < 4) {
             <div class="flex-1 space-y-8 text-center lg:text-left">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-600/10 border border-orange-600/20 text-[10px] font-black uppercase tracking-[0.3em] text-orange-500">
                     <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
-                    System_Online
+                    System Online
                 </div>
                 <h1 class="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.8] text-glow-orange">
-                    Future_Proofed <br/> <span class="text-zinc-500">Engineering</span>
+                    Future Proofed <br/> <span class="text-zinc-500">Engineering</span>
                 </h1>
                 <p class="text-zinc-400 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">
                     <?php echo $heroSubtext; ?>
@@ -159,7 +159,7 @@ if (count($hero_projects) < 4) {
                     <div class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-[2px]">
                         <div class="text-[9px] font-black uppercase tracking-widest text-white truncate"><?php echo $hp['title']; ?></div>
                         <?php if($hp['is_pinned']): ?>
-                            <div class="text-[7px] font-mono text-orange-500 uppercase mt-1">Priority_node_0<?php echo $hp['id']; ?></div>
+                            <div class="text-[7px] font-mono text-orange-500 uppercase mt-1">Priority Node 0<?php echo $hp['id']; ?></div>
                         <?php endif; ?>
                     </div>
                 </a>
@@ -181,7 +181,7 @@ if (count($hero_projects) < 4) {
 
                 <form method="GET" class="relative group">
                     <input type="hidden" name="filter" value="<?php echo $filter; ?>">
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search_Active_Nodes..." 
+                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search Active Nodes..." 
                            class="bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-orange-500 transition-all font-mono text-[10px] w-64 uppercase">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
                 </form>
@@ -189,7 +189,7 @@ if (count($hero_projects) < 4) {
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <?php if(empty($projects)): ?>
-                    <div class="col-span-full py-20 text-center font-mono text-zinc-600 uppercase tracking-widest">Database_Query_Null_Entities</div>
+                    <div class="col-span-full py-20 text-center font-mono text-zinc-600 uppercase tracking-widest">Database Query Null Entities</div>
                 <?php endif; ?>
                 <?php foreach($projects as $proj): ?>
                 <a href="project.php?slug=<?php echo $proj['slug']; ?>" class="group glass rounded-2xl overflow-hidden p-3 border border-white/5 hover:border-sharp-orange/30 transition-all hover:translate-y-[-4px]">
@@ -199,8 +199,8 @@ if (count($hero_projects) < 4) {
                     <div class="space-y-2">
                         <h3 class="font-black text-lg uppercase truncate italic leading-none"><?php echo $proj['title']; ?></h3>
                         <div class="flex justify-between items-center text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
-                            <span><?php echo $proj['project_type']; ?>_node</span>
-                            <span class="group-hover:text-orange-500 transition-colors">Access_Portal →</span>
+                            <span><?php echo $proj['project_type']; ?> Node</span>
+                            <span class="group-hover:text-orange-500 transition-colors">Access Portal →</span>
                         </div>
                     </div>
                 </a>
@@ -210,7 +210,7 @@ if (count($hero_projects) < 4) {
     </main>
 
     <footer class="py-20 border-t border-white/5 px-6 text-center text-zinc-600 font-mono text-[9px] uppercase tracking-widest">
-        &copy; <?php echo date('Y'); ?> <?php echo $appTitle; ?> Node Controller. System_Architecture_Secure.
+        &copy; <?php echo date('Y'); ?> <?php echo $appTitle; ?> Node Controller. System Architecture Secure.
     </footer>
 
 </body>

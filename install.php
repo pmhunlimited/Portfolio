@@ -105,7 +105,7 @@ if ($step === 3 && isset($_POST['admin_config'])) {
         <div class="absolute top-0 right-0 w-32 h-32 bg-orange-600/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2"></div>
         
         <header class="text-center space-y-2">
-            <h1 class="text-2xl font-black italic tracking-tighter text-orange-500 uppercase">Cyber_Pulse_Installer</h1>
+            <h1 class="text-2xl font-black italic tracking-tighter text-orange-500 uppercase">Cyber Pulse Installer</h1>
             <div class="flex justify-center gap-2">
                 <?php for($i=1; $i<=4; $i++): ?>
                 <div class="h-1 w-8 rounded-full <?php echo $step >= $i ? 'bg-orange-500' : 'bg-white/10'; ?>"></div>
@@ -116,7 +116,7 @@ if ($step === 3 && isset($_POST['admin_config'])) {
         <?php if($step === 1): ?>
             <div class="space-y-6">
                 <div class="space-y-4">
-                    <h2 class="text-sm font-black uppercase tracking-[0.3em] text-zinc-400">Environment_Health</h2>
+                    <h2 class="text-sm font-black uppercase tracking-[0.3em] text-zinc-400">Environment Health</h2>
                     <ul class="space-y-3 font-mono text-[11px] uppercase">
                         <li class="flex justify-between items-center p-3 glass rounded-xl">
                             <span>PHP Version (>= 7.4)</span>
@@ -133,7 +133,7 @@ if ($step === 3 && isset($_POST['admin_config'])) {
                     </ul>
                 </div>
                 <?php if($requirements_met): ?>
-                    <a href="?step=2" class="block w-full py-4 bg-white text-black text-center font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Start_Calibration</a>
+                    <a href="?step=2" class="block w-full py-4 bg-white text-black text-center font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Start Calibration</a>
                 <?php else: ?>
                     <p class="text-[10px] text-red-500 text-center font-bold uppercase tracking-widest">System requirements not met. Please configure server.</p>
                 <?php endif; ?>
@@ -142,7 +142,7 @@ if ($step === 3 && isset($_POST['admin_config'])) {
 
         <?php if($step === 2): ?>
             <form method="POST" class="space-y-6">
-                <h2 class="text-sm font-black uppercase tracking-[0.3em] text-zinc-400">Database_Link</h2>
+                <h2 class="text-sm font-black uppercase tracking-[0.3em] text-zinc-400">Database Link</h2>
                 <?php if(isset($error)): ?>
                     <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold rounded-xl"><?php echo $error; ?></div>
                 <?php endif; ?>
@@ -152,18 +152,18 @@ if ($step === 3 && isset($_POST['admin_config'])) {
                     <input type="text" name="user" placeholder="User" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
                     <input type="password" name="pass" placeholder="Password" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
                 </div>
-                <button type="submit" name="db_config" class="w-full py-4 bg-white text-black font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Synchronize_Data</button>
+                <button type="submit" name="db_config" class="w-full py-4 bg-white text-black font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Synchronize Data</button>
             </form>
         <?php endif; ?>
 
         <?php if($step === 3): ?>
             <form method="POST" class="space-y-6">
-                <h2 class="text-sm font-black uppercase tracking-[0.3em] text-zinc-400">Admin_Authorization</h2>
+                <h2 class="text-sm font-black uppercase tracking-[0.3em] text-zinc-400">Admin Authorization</h2>
                 <div class="grid grid-cols-1 gap-4">
                     <input type="email" name="email" placeholder="Admin Email" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
                     <input type="password" name="pass" placeholder="Master Password" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
                 </div>
-                <button type="submit" name="admin_config" class="w-full py-4 bg-white text-black font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Initialize_Identity</button>
+                <button type="submit" name="admin_config" class="w-full py-4 bg-white text-black font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Initialize Identity</button>
             </form>
         <?php endif; ?>
 
@@ -173,20 +173,20 @@ if ($step === 3 && isset($_POST['admin_config'])) {
                     <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                 </div>
                 <div class="space-y-2">
-                    <h2 class="text-xl font-black italic uppercase italic">System_Calibrated!</h2>
+                    <h2 class="text-xl font-black italic uppercase italic">System Calibrated!</h2>
                     <p class="text-zinc-500 text-[11px] leading-loose max-w-sm mx-auto uppercase font-medium">
                         Deployment complete. You are now the master of the Cyber-Pulse grid. Proceed to the admin panel to populate your node cluster.
                     </p>
                 </div>
                 <div class="p-6 glass rounded-2xl text-left space-y-4">
-                    <h3 class="text-[9px] font-black uppercase tracking-widest text-orange-500">Master_Protocol:</h3>
+                    <h3 class="text-[9px] font-black uppercase tracking-widest text-orange-500">Master Protocol:</h3>
                     <ul class="text-[10px] space-y-2 text-zinc-400">
                         <li>• Access Admin via <span class="text-white font-mono">/admin.php</span></li>
                         <li>• Configure AI Pulse in <span class="text-white">API Manager</span></li>
                         <li>• Inject at least 4 nodes for optimal Hero display</li>
                     </ul>
                 </div>
-                <a href="admin.php" class="block w-full py-4 bg-orange-600 text-white font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Access_Portal</a>
+                <a href="admin.php" class="block w-full py-4 bg-orange-600 text-white font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Access Portal</a>
             </div>
         <?php endif; ?>
 

@@ -5,7 +5,7 @@
  * Renders media intelligently (Image or Video)
  */
 function render_media($url, $class = "w-full h-full object-cover", $props = "") {
-    if (!$url) return "<div class='w-full h-full bg-zinc-900 flex items-center justify-center text-[10px] text-zinc-700 font-mono uppercase'>No_Media</div>";
+    if (!$url) return "<div class='w-full h-full bg-zinc-900 flex items-center justify-center text-[10px] text-zinc-700 font-mono uppercase'>No Media</div>";
     
     $video_extensions = ['mp4', 'webm', 'ogg', 'mov'];
     $path = parse_url($url, PHP_URL_PATH);
@@ -131,26 +131,41 @@ function fetch_pagespeed_vitals($api_key, $url) {
 }
 
 /**
- * Screenshot Intelligence Fallback
+ * Screenshot Intelligence Fallback (Multi-Source Resilience)
  */
 function fetch_screenshot_fallback($url) {
-    // WordPress mshots is a reliable public screenshot service
     $encoded_url = urlencode($url);
-    $mshots_url = "https://s.wordpress.com/mshots/v1/{$encoded_url}?w=1280&h=800";
     
-    // We attempt to get the binary and convert to base64 to keep everything as local strings
-    $ch = curl_init($mshots_url);
+    // Attempt 1: WordPress mshots (Reliable, high-speed)
+    $mshots_url = "https://s.wordpress.com/mshots/v1/{$encoded_url}?w=1280&h=800";
+    $res = try_fetch_base64_image($mshots_url, 8000); // Expect at least 8KB for real image
+    if ($res) return $res;
+
+    // Attempt 2: Microlink Protocol (Sophisticated browser-based)
+    $microlink_url = "https://api.microlink.io/?url={$encoded_url}&screenshot=true&embed=screenshot.url";
+    $res = try_fetch_base64_image($microlink_url, 5000);
+    if ($res) return $res;
+    
+    return null;
+}
+
+/**
+ * Helper to fetch and convert binary image to Base64
+ */
+function try_fetch_base64_image($url, $min_size = 0) {
+    $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CyberPulse/1.0');
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
     $binary = curl_exec($ch);
     $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($binary && strpos($content_type, 'image') !== false) {
+    if ($http_code === 200 && $binary && strpos($content_type, 'image') !== false && strlen($binary) >= $min_size) {
         return 'data:' . $content_type . ';base64,' . base64_encode($binary);
     }
-    
     return null;
 }
 
