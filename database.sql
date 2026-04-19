@@ -19,7 +19,9 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('admin_username', 'philmorehost@gmail.com'),
 ('admin_password', 'password1234'),
 ('authorized_email', 'philmorehost@gmail.com'),
-('default_ai_agent', 'gemini');
+('default_ai_agent', 'gemini'),
+('gemini_scans', '0'),
+('deepseek_scans', '0');
 
 -- Projects Table
 CREATE TABLE IF NOT EXISTS projects (

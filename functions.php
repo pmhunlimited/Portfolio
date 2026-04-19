@@ -131,6 +131,52 @@ function fetch_pagespeed_vitals($api_key, $url) {
 }
 
 /**
+ * Screenshot Intelligence Fallback
+ */
+function fetch_screenshot_fallback($url) {
+    // WordPress mshots is a reliable public screenshot service
+    $encoded_url = urlencode($url);
+    $mshots_url = "https://s.wordpress.com/mshots/v1/{$encoded_url}?w=1280&h=800";
+    
+    // We attempt to get the binary and convert to base64 to keep everything as local strings
+    $ch = curl_init($mshots_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    $binary = curl_exec($ch);
+    $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    curl_close($ch);
+
+    if ($binary && strpos($content_type, 'image') !== false) {
+        return 'data:' . $content_type . ';base64,' . base64_encode($binary);
+    }
+    
+    return null;
+}
+
+/**
+ * AI Usage Intelligence
+ */
+function increment_ai_usage($pdo, $agent) {
+    $key = ($agent === 'deepseek') ? 'deepseek_scans' : 'gemini_scans';
+    $stmt = $pdo->prepare("UPDATE settings SET setting_value = CAST(setting_value AS UNSIGNED) + 1 WHERE setting_key = ?");
+    $stmt->execute([$key]);
+}
+
+/**
+ * DeepSeek Balance Protocol
+ */
+function check_deepseek_balance($api_key) {
+    if (!$api_key) return null;
+    $ch = curl_init("https://api.deepseek.com/user/balance");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Bearer $api_key"]);
+    $res = curl_exec($ch);
+    curl_close($ch);
+    return json_decode($res, true);
+}
+
+/**
  * Slugifier for clean URLs
  */
 function slugify($text) {

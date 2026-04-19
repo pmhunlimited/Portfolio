@@ -15,7 +15,7 @@ $url = $data['url'] ?? '';
 $title = $data['title'] ?? 'Determine from content';
 $vitals_only = $data['vitals_only'] ?? false;
 
-if (!$url) {
+if (!$url && !($data['get_stats'] ?? false)) {
     header('Content-Type: application/json');
     echo json_encode(['error' => 'URL_REQUIRED']);
     exit;
@@ -26,6 +26,18 @@ $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
 while($row = $stmt->fetch()) $settings[$row['setting_key']] = $row['setting_value'];
 
+// Statistics Protocol
+if ($data['get_stats'] ?? false) {
+    header('Content-Type: application/json');
+    $stats = [
+        'gemini_scans' => $settings['gemini_scans'] ?? 0,
+        'deepseek_scans' => $settings['deepseek_scans'] ?? 0,
+        'deepseek_balance' => check_deepseek_balance($settings['deepseek_api_key'] ?? '')
+    ];
+    echo json_encode($stats);
+    exit;
+}
+
 $response = [];
 
 // Protocol 1: PageSpeed Intelligence (Vitals + Screenshot)
@@ -35,6 +47,11 @@ if (!empty($settings['pagespeed_api_key'])) {
         $response['speed'] = $vitals['speed'];
         $response['screenshot'] = $vitals['screenshot'];
     }
+}
+
+// Fallback Protocol: If screenshot is still missing
+if (empty($response['screenshot'])) {
+    $response['screenshot'] = fetch_screenshot_fallback($url);
 }
 
 // Protocol 2: AI Synapse (If not vitals_only)
@@ -48,6 +65,7 @@ if (!$vitals_only) {
             $response['ai_error'] = $ai_data['error'];
         } else {
             $response = array_merge($response, $ai_data);
+            increment_ai_usage($pdo, $agent);
         }
     } else {
         $response['ai_error'] = "API_KEY_MISSING_FOR_" . strtoupper($agent);

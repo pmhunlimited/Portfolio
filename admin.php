@@ -100,7 +100,11 @@ if (!isset($_SESSION['authorized'])) {
 
 // Handle CRUD Operations
 if (isset($_POST['update_settings'])) {
-    $keys = ['appTitle', 'heroSubtext', 'gemini_api_key', 'deepseek_api_key', 'pagespeed_api_key', 'admin_username', 'admin_password', 'authorized_email', 'default_ai_agent'];
+    $keys = [
+        'appTitle', 'heroSubtext', 'gemini_api_key', 'deepseek_api_key', 'pagespeed_api_key', 
+        'admin_username', 'admin_password', 'authorized_email', 'default_ai_agent',
+        'gemini_scans', 'deepseek_scans'
+    ];
     foreach ($keys as $key) {
         if (isset($_POST[$key])) {
             $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
@@ -108,6 +112,13 @@ if (isset($_POST['update_settings'])) {
         }
     }
     header("Location: admin.php?settings_updated=1");
+    exit;
+}
+
+if (isset($_POST['reset_usage'])) {
+    $stmt = $pdo->prepare("UPDATE settings SET setting_value = '0' WHERE setting_key IN ('gemini_scans', 'deepseek_scans')");
+    $stmt->execute();
+    header("Location: admin.php?usage_reset=1");
     exit;
 }
 
@@ -536,6 +547,36 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     </button>
                     <p class="text-center text-[8px] font-mono text-zinc-600 uppercase tracking-widest italic">Note: AI specialists handle all 'Scan & Deploy' operations based on active node choice.</p>
                 </form>
+
+                <!-- AI Usage Stats -->
+                <div class="pt-10 border-t border-white/5 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Node_Usage_Telemetry</h3>
+                        <form method="POST" onsubmit="return confirm('Reset all usage metrics?')">
+                            <button type="submit" name="reset_usage" class="text-[8px] uppercase font-bold text-red-500 hover:text-white transition-all bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">Reset_Counters</button>
+                        </form>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="glass p-6 rounded-xl space-y-3 relative overflow-hidden group">
+                            <div class="flex justify-between items-center relative z-10">
+                                <span class="text-[9px] uppercase font-bold text-zinc-500">Gemini (Node_Alpha)</span>
+                                <span class="text-xs font-black text-orange-500" id="stat-gemini-scans">...</span>
+                            </div>
+                            <div class="text-[8px] uppercase font-mono text-zinc-600 tracking-tighter">Usage: Scans performed in current cycle</div>
+                            <div class="absolute bottom-0 left-0 h-0.5 bg-orange-600 transition-all duration-1000" style="width: 0%" id="stat-gemini-bar"></div>
+                        </div>
+                        
+                        <div class="glass p-6 rounded-xl space-y-3 relative overflow-hidden group">
+                            <div class="flex justify-between items-center relative z-10">
+                                <span class="text-[9px] uppercase font-bold text-zinc-500">DeepSeek (Node_Bravo)</span>
+                                <span class="text-xs font-black text-blue-500" id="stat-deepseek-scans">...</span>
+                            </div>
+                            <div class="text-[8px] uppercase font-mono text-zinc-600 tracking-tighter" id="stat-deepseek-balance">Balance: Syncing telemetry...</div>
+                            <div class="absolute bottom-0 left-0 h-0.5 bg-blue-600 transition-all duration-1000" style="width: 0%" id="stat-deepseek-bar"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -564,6 +605,37 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     btn.classList.remove('text-zinc-500');
                 }
             });
+
+            if(tab === 'api') refreshStats();
+        }
+
+        async function refreshStats() {
+            try {
+                const res = await fetch('api_ai.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ get_stats: true })
+                });
+                const data = await res.json();
+                
+                // Update Gemini UI
+                document.getElementById('stat-gemini-scans').innerText = data.gemini_scans + ' SCANS';
+                const geminiPercent = Math.min((data.gemini_scans / 50) * 100, 100); // 50 is a soft cap for visual
+                document.getElementById('stat-gemini-bar').style.width = geminiPercent + '%';
+                
+                // Update DeepSeek UI
+                document.getElementById('stat-deepseek-scans').innerText = data.deepseek_scans + ' SCANS';
+                const dsPercent = Math.min((data.deepseek_scans / 50) * 100, 100);
+                document.getElementById('stat-deepseek-bar').style.width = dsPercent + '%';
+                
+                if(data.deepseek_balance && data.deepseek_balance.is_available) {
+                    const bal = data.deepseek_balance.balance_infos[0];
+                    document.getElementById('stat-deepseek-balance').innerText = `Balance: ${bal.total_balance} ${bal.currency} (${bal.topped_up_balance} Paid)`;
+                } else if(data.deepseek_balance) {
+                    document.getElementById('stat-deepseek-balance').innerText = "Balance: Unavailable (Check Key)";
+                }
+
+            } catch(e) { console.error('Stats Sync Error', e); }
         }
 
         async function generateAI() {
