@@ -154,15 +154,16 @@ if (isset($_POST['save_project'])) {
         lvl0_login_url, lvl0_user, lvl0_pass, lvl0_direct_url, lvl0_note,
         lvl1_login_url, lvl1_user, lvl1_pass, lvl1_direct_url, lvl1_note,
         lvl2_login_url, lvl2_user, lvl2_pass, lvl2_direct_url, lvl2_note,
-        meta_title, wa_message
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        meta_title, wa_message, speed
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     
     $stmt->execute([
         $title, $slug, $content, $url, $thumbnail, $type,
         $lvl0_login_url, $lvl0_user, $lvl0_pass, $lvl0_direct_url, $lvl0_note,
         $lvl1_login_url, $lvl1_user, $lvl1_pass, $lvl1_direct_url, $lvl1_note,
         $lvl2_login_url, $lvl2_user, $lvl2_pass, $lvl2_direct_url, $lvl2_note,
-        $_POST['meta_title'] ?? '', $_POST['wa_message'] ?? ''
+        $_POST['meta_title'] ?? '', $_POST['wa_message'] ?? '',
+        $_POST['speed'] ?? 98
     ]);
     
     $project_id = $pdo->lastInsertId();
@@ -276,6 +277,28 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                 </div>
 
                 <form method="POST" class="space-y-6" id="project-form">
+                    <input type="hidden" name="speed" id="f-speed" value="98">
+                    
+                    <div class="space-y-4">
+                        <label class="text-[9px] uppercase font-bold text-zinc-500">Deployment Protocol</label>
+                        <div class="flex gap-4">
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="mode" value="auto" class="hidden peer" checked onchange="toggleDeploymentMode('auto')">
+                                <div class="glass p-4 rounded-xl border border-white/5 peer-checked:border-orange-500 peer-checked:bg-orange-600/10 transition-all text-center">
+                                    <div class="text-[10px] font-black uppercase text-zinc-400 peer-checked:text-orange-500">Automated_Deploy</div>
+                                    <div class="text-[8px] text-zinc-600 uppercase mt-1">AI-Powered Synthesis</div>
+                                </div>
+                            </label>
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="mode" value="manual" class="hidden peer" onchange="toggleDeploymentMode('manual')">
+                                <div class="glass p-4 rounded-xl border border-white/5 peer-checked:border-orange-500 peer-checked:bg-orange-600/10 transition-all text-center">
+                                    <div class="text-[10px] font-black uppercase text-zinc-400 peer-checked:text-orange-500">Manual_Entry</div>
+                                    <div class="text-[8px] text-zinc-600 uppercase mt-1">Surgical Grid Control</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="text-[9px] uppercase font-bold text-zinc-500">Live Destination URL</label>
@@ -286,7 +309,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                                 $stmt_agent->execute();
                                 $current_agent = $stmt_agent->fetchColumn() ?: 'gemini';
                                 ?>
-                                <button type="button" onclick="generateAI()" class="px-6 bg-orange-600 text-black font-black uppercase italic text-[10px] rounded-xl hover:brightness-110 active:scale-95 transition-all">
+                                <button type="button" id="scan-btn" onclick="generateAI()" class="px-6 bg-orange-600 text-black font-black uppercase italic text-[10px] rounded-xl hover:brightness-110 active:scale-95 transition-all">
                                     <?php echo strtoupper($current_agent); ?>_SCAN_&_DEPLOY
                                 </button>
                             </div>
@@ -517,6 +540,18 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
         </div>
 
     <script>
+        let deploymentMode = 'auto';
+
+        function toggleDeploymentMode(mode) {
+            deploymentMode = mode;
+            const btn = document.getElementById('scan-btn');
+            if(mode === 'manual') {
+                btn.innerText = 'VITAL_GRID_SCAN';
+            } else {
+                btn.innerText = '<?php echo strtoupper($current_agent); ?>_SCAN_&_DEPLOY';
+            }
+        }
+
         function switchTab(tab) {
             document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-' + tab).classList.remove('hidden');
@@ -539,32 +574,48 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
             const loader = document.getElementById('ai-loading');
             const status = document.getElementById('ai-status');
             loader.classList.remove('hidden');
-            status.innerText = "Agent_Scanning_Destination...";
+            status.innerText = deploymentMode === 'auto' ? "Agent_Scanning_Destination..." : "Extracting_Vital_Stats...";
             
             try {
                 const res = await fetch('api_ai.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ url, title })
+                    body: JSON.stringify({ 
+                        url, 
+                        title, 
+                        vitals_only: (deploymentMode === 'manual') 
+                    })
                 });
                 const data = await res.json();
                 
                 if(data.error) throw new Error(data.error);
                 
-                status.innerText = "Reconfiguring_Identity...";
+                status.innerText = "Synchronizing_Metadata...";
                 
-                if(data.content) document.getElementById('f-content').value = data.content;
-                if(data.metaTitle) document.getElementById('f-meta-title').value = data.metaTitle;
-                if(data.metaTitle && !title) document.getElementById('f-title').value = data.metaTitle;
-                if(data.waMessage) document.getElementById('f-wa').value = data.waMessage;
-                
-                // Tech Stack population
-                if (data.techStack && data.techStack.length > 0) {
-                    const stack = data.techStack.map(s => s.name).join(', ');
-                    document.getElementById('f-content').value += "\n\n### Strategic Tech Stack\n" + stack;
+                // Common fields (Vitals)
+                if(data.speed) {
+                    document.getElementById('f-speed').value = data.speed;
+                }
+                if(data.screenshot) {
+                    document.getElementById('f-thumb').value = data.screenshot;
                 }
 
-                alert('Autonomous Analysis Complete. Node successfully reconfigured.');
+                // AI Fields
+                if(deploymentMode === 'auto') {
+                    if(data.content) document.getElementById('f-content').value = data.content;
+                    if(data.metaTitle) document.getElementById('f-meta-title').value = data.metaTitle;
+                    if(data.metaTitle && !title) document.getElementById('f-title').value = data.metaTitle;
+                    if(data.waMessage) document.getElementById('f-wa').value = data.waMessage;
+                    
+                    // Tech Stack population
+                    if (data.techStack && data.techStack.length > 0) {
+                        const stack = data.techStack.map(s => s.name).join(', ');
+                        document.getElementById('f-content').value += "\n\n### Strategic Tech Stack\n" + stack;
+                    }
+                    alert('Autonomous Analysis Complete. Node successfully reconfigured.');
+                } else {
+                    alert('Vital Scan Complete. Performance stats and screenshot captured.');
+                }
             } catch(e) {
                 alert('Neutralization Failed: ' + (e.message || 'Unknown Protocol Error'));
             } finally {

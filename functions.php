@@ -34,19 +34,20 @@ function generate_project_pitch($api_key, $target_url, $agent = 'gemini', $title
     }
 
     $prompt = "
-    Perform a deep-scan and analysis of the provided URL to extract its core value proposition, technical architecture, and visual identity.
-    Target URL: $target_url
+    Role: Elite Digital Product Strategist
+    Task: Deep-scan and analyze $target_url to extract its core value proposition, technical architecture, and visual identity.
     Title Context: $title_context
     
-    Your goal is to generate a 'Power Pitch' that is 100% inline with exactly what the website offers. 
+    Objective: Generate a 'Power Pitch' that is 100% humanoid in tone. Avoid robotic cliches, generic marketing fluff, or 'AI-isms'. Use sophisticated, punchy, and high-conversion professional language suited for a premium portfolio.
+    
     Return ONLY a JSON object with:
     {
-      \"content\": \"Markdown string with 2-3 clear paragraphs for maximum readability\",
-      \"metaTitle\": \"SEO title (max 60 chars)\",
-      \"metaDescription\": \"SEO desc (max 160 chars)\",
+      \"content\": \"Markdown string. 2-3 paragraphs. Each paragraph should sound like it was written by a senior director of engineering with a flair for product design. Focus on 'the how' and 'the why'.\",
+      \"metaTitle\": \"High-impact SEO title (30-60 chars)\",
+      \"metaDescription\": \"Compelling SEO description that drives clicks (120-160 chars)\",
       \"keywords\": [\"tag1\", \"tag2\", \"tag3\", \"tag4\", \"tag5\"],
-      \"techStack\": [{\"name\": \"React\"}, {\"name\": \"Tailwind\"}, {\"name\": \"Firebase\"}],
-      \"waMessage\": \"A professional WhatsApp inquiry message tailored to this specific service.\"
+      \"techStack\": [{\"name\": \"React\"}, {\"name\": \"Tailwind\"}, {\"name\": \"Node.js\"}],
+      \"waMessage\": \"A personalized, high-conversion WhatsApp inquiry message.\"
     }
     ";
 
@@ -54,6 +55,7 @@ function generate_project_pitch($api_key, $target_url, $agent = 'gemini', $title
         $data = [
             "model" => $model,
             "messages" => [
+                ["role" => "system", "content" => "You are a professional software architect. Your output must be indistinguishable from human writing."],
                 ["role" => "user", "content" => $prompt]
             ],
             "response_format" => ["type" => "json_object"]
@@ -100,6 +102,32 @@ function generate_project_pitch($api_key, $target_url, $agent = 'gemini', $title
     }
     
     return ['error' => 'Model did not return valid JSON', 'raw' => $response, 'agent' => $agent];
+}
+
+/**
+ * Google PageSpeed Insights Intelligence
+ */
+function fetch_pagespeed_vitals($api_key, $url) {
+    if (!$api_key) return null;
+    
+    $endpoint = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=" . urlencode($url) . "&key=" . $api_key . "&category=performance";
+    
+    $ch = curl_init($endpoint);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60); // PageSpeed takes time
+    $response = curl_exec($ch);
+    curl_close($ch);
+    
+    $data = json_decode($response, true);
+    if (!isset($data['lighthouseResult'])) return null;
+    
+    $score = ($data['lighthouseResult']['categories']['performance']['score'] ?? 0.9) * 100;
+    $screenshot = $data['lighthouseResult']['audits']['final-screenshot']['details']['data'] ?? null;
+    
+    return [
+        'speed' => round($score),
+        'screenshot' => $screenshot
+    ];
 }
 
 /**
