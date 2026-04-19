@@ -38,7 +38,7 @@ function generate_project_pitch($api_key, $target_url, $agent = 'gemini', $title
     Task: Deep-scan and analyze $target_url to extract its core value proposition, technical architecture, and visual identity.
     Title Context: $title_context
     
-    Objective: Generate a 'Power Pitch' that is 100% humanoid in tone. Avoid robotic cliches, generic marketing fluff, or 'AI-isms'. Use sophisticated, punchy, and high-conversion professional language suited for a premium portfolio.
+    Objective: Generate a 'Power Pitch' that is 100% human-written in tone. Crucial: The writing must have a signature 'soul'—use varied sentence lengths (burstiness), specific technical nuances, and avoid the typical 'Delve into...' or 'In the rapidly evolving landscape...' AI cliches. Think senior director level commentary. Focus on strategic impact.
     
     Return ONLY a JSON object with:
     {
@@ -142,8 +142,13 @@ function fetch_screenshot_fallback($url) {
     if ($res) return $res;
 
     // Attempt 2: Microlink Protocol (Sophisticated browser-based)
-    $microlink_url = "https://api.microlink.io/?url={$encoded_url}&screenshot=true&embed=screenshot.url";
+    $microlink_url = "https://api.microlink.io/?url={$encoded_url}&screenshot=true&embed=screenshot.url&waitFor=5000";
     $res = try_fetch_base64_image($microlink_url, 5000);
+    if ($res) return $res;
+
+    // Attempt 3: Thum.io (Speed-optimized)
+    $thum_url = "https://image.thum.io/get/width/1280/crop/800/noanimate/" . $url;
+    $res = try_fetch_base64_image($thum_url, 5000);
     if ($res) return $res;
     
     return null;

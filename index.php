@@ -131,8 +131,8 @@ if (count($hero_projects) < 4) {
             ?>
         </div>
         <div class="hidden md:flex gap-8">
-            <a href="index.php" class="text-[10px] font-black uppercase tracking-widest hover:text-sharp-orange transition-colors">Grid</a>
-            <a href="admin.php" class="text-[10px] font-black uppercase tracking-widest text-[#BF00FF] hover:brightness-110">Security Portal</a>
+            <a href="index.php" class="text-[10px] font-black uppercase tracking-widest hover:text-sharp-orange transition-colors">gridNode</a>
+            <a href="admin.php" class="text-[10px] font-black uppercase tracking-widest text-[#BF00FF] hover:brightness-110">securityPortal</a>
         </div>
     </nav>
 
@@ -181,7 +181,7 @@ if (count($hero_projects) < 4) {
 
                 <form method="GET" class="relative group">
                     <input type="hidden" name="filter" value="<?php echo $filter; ?>">
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search Active Nodes..." 
+                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="searchActiveNodes..." 
                            class="bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-orange-500 transition-all font-mono text-[10px] w-64 uppercase">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
                 </form>

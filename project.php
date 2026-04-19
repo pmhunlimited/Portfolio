@@ -216,7 +216,7 @@ $keywords = $key_stmt->fetchAll();
 
             <!-- Multi-Tier Interface Access Protocol -->
             <div class="space-y-6 pt-12 border-t border-white/5">
-                <h3 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">Tiered Interface Access</h3>
+                <h3 class="text-xs font-black uppercase tracking-[0.4em] text-orange-500">tieredInterfaceAccess</h3>
                 
                 <div class="grid grid-cols-1 gap-4">
                     <?php 
@@ -236,9 +236,9 @@ $keywords = $key_stmt->fetchAll();
                                 <span class="text-[10px] font-black uppercase tracking-[0.2em] text-<?php echo $tier['color']; ?>-500">Access Level <?php echo $tier['id']; ?>: <?php echo $tier['name']; ?></span>
                             </div>
                             <?php if(!empty($project[$prefix.'direct_url'])): ?>
-                            <a href="<?php echo $project[$prefix.'direct_url']; ?>" target="_blank" class="px-4 py-1.5 bg-<?php echo $tier['color']; ?>-600 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-110">One-Click Bypass</a>
+                            <a href="<?php echo $project[$prefix.'direct_url']; ?>" target="_blank" class="px-4 py-1.5 bg-<?php echo $tier['color']; ?>-600 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-110">oneClickBypass</a>
                             <?php elseif(!empty($project[$prefix.'user']) && !empty($project[$prefix.'pass']) && !empty($project[$prefix.'login_url'])): ?>
-                            <button onclick="attemptLogin('<?php echo $project[$prefix.'login_url']; ?>', '<?php echo $project[$prefix.'user']; ?>', '<?php echo $project[$prefix.'pass']; ?>')" class="px-4 py-1.5 bg-<?php echo $tier['color']; ?>-600 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-110">Auto Deploy Access</button>
+                            <button onclick="attemptLogin('<?php echo $project[$prefix.'login_url']; ?>', '<?php echo $project[$prefix.'user']; ?>', '<?php echo $project[$prefix.'pass']; ?>')" class="px-4 py-1.5 bg-<?php echo $tier['color']; ?>-600 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-110">autoDeployAccess</button>
                             <?php endif; ?>
                         </div>
 

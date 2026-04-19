@@ -147,10 +147,10 @@ if ($step === 3 && isset($_POST['admin_config'])) {
                     <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold rounded-xl"><?php echo $error; ?></div>
                 <?php endif; ?>
                 <div class="grid grid-cols-1 gap-4">
-                    <input type="text" name="host" value="localhost" placeholder="DB Host" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
-                    <input type="text" name="db" placeholder="Database Name" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
-                    <input type="text" name="user" placeholder="User" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
-                    <input type="password" name="pass" placeholder="Password" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                    <input type="text" name="host" value="localhost" placeholder="dbHost" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
+                    <input type="text" name="db" placeholder="databaseName" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
+                    <input type="text" name="user" placeholder="username" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
+                    <input type="password" name="pass" placeholder="password" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
                 </div>
                 <button type="submit" name="db_config" class="w-full py-4 bg-white text-black font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Synchronize Data</button>
             </form>
@@ -160,8 +160,8 @@ if ($step === 3 && isset($_POST['admin_config'])) {
             <form method="POST" class="space-y-6">
                 <h2 class="text-sm font-black uppercase tracking-[0.3em] text-zinc-400">Admin Authorization</h2>
                 <div class="grid grid-cols-1 gap-4">
-                    <input type="email" name="email" placeholder="Admin Email" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
-                    <input type="password" name="pass" placeholder="Master Password" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
+                    <input type="email" name="email" placeholder="adminEmail" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
+                    <input type="password" name="pass" placeholder="masterPassword" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500" required>
                 </div>
                 <button type="submit" name="admin_config" class="w-full py-4 bg-white text-black font-black uppercase italic tracking-widest rounded-xl hover:bg-orange-500 transition-all">Initialize Identity</button>
             </form>

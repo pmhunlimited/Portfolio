@@ -64,7 +64,7 @@ if (!isset($_SESSION['authorized'])) {
                         <div class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-orange-600 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         </div>
-                        <input type="text" name="username" placeholder="IDENTITY_ID" required
+                        <input type="text" name="username" placeholder="identityId" required
                                class="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-14 pr-4 outline-none focus:border-orange-600 transition-all font-mono text-xs tracking-widest">
                     </div>
 
@@ -72,7 +72,7 @@ if (!isset($_SESSION['authorized'])) {
                         <div class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-orange-600 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                         </div>
-                        <input type="password" name="password" placeholder="PASSPHRASE" required
+                        <input type="password" name="password" placeholder="masterPassphrase" required
                                class="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-14 pr-4 outline-none focus:border-orange-600 transition-all font-mono text-xs tracking-widest">
                     </div>
                 </div>
@@ -271,14 +271,14 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
     <div class="max-w-4xl mx-auto space-y-12">
         <header class="flex justify-between items-center">
             <h1 class="text-2xl font-black italic tracking-tighter text-orange-500 uppercase">System Administration</h1>
-            <a href="index.php" class="text-xs uppercase font-bold text-zinc-500 hover:text-white">Exit_Portal</a>
+            <a href="index.php" class="text-xs uppercase font-bold text-zinc-500 hover:text-white">exitPortal</a>
         </header>
 
         <!-- Admin Tabs -->
         <div class="flex gap-4 mb-8 overflow-x-auto pb-2">
-            <button onclick="switchTab('posting')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-orange-600 text-black shadow-lg" data-tab="posting">Posting & Projects</button>
-            <button onclick="switchTab('system')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="system">System Configuration</button>
-            <button onclick="switchTab('api')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="api">API & AI Nodes</button>
+            <button onclick="switchTab('posting')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-orange-600 text-black shadow-lg" data-tab="posting">postingProjects</button>
+            <button onclick="switchTab('system')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="system">systemConfiguration</button>
+            <button onclick="switchTab('api')" class="tab-btn px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all text-zinc-500 hover:text-white" data-tab="api">integrationVault</button>
         </div>
 
         <!-- Posting Tab -->
@@ -318,7 +318,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Live Destination URL</label>
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">liveDestinationUrl</label>
                             <div class="flex gap-2">
                                 <input type="url" name="url" id="f-url" placeholder="https://..." class="flex-1 bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
                                 <?php
@@ -332,38 +332,38 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Project Identifier (Title)</label>
-                            <input type="text" name="title" id="f-title" placeholder="Project Name" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">projectIdentifier</label>
+                            <input type="text" name="title" id="f-title" placeholder="nodeTitle" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Node Cluster Type</label>
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">nodeClusterType</label>
                             <select name="type" id="f-type" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 uppercase font-black text-xs">
-                                <option value="web">Web Interface</option>
-                                <option value="app">Mobile App</option>
+                                <option value="web">WEB_INTERFACE</option>
+                                <option value="app">APP_RUNTIME</option>
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">Master Thumbnail URL</label>
-                            <input type="text" name="thumbnail_url" id="f-thumb" placeholder="https://images..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">masterThumbnailUrl</label>
+                            <input type="text" name="thumbnail_url" id="f-thumb" placeholder="thumbnailUrl" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500">
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <label class="text-[9px] uppercase font-bold text-zinc-500">Live Script / Content (Markdown)</label>
-                        <textarea name="content" id="f-content" placeholder="System capabilities..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 h-40 font-mono text-sm"></textarea>
+                        <label class="text-[9px] uppercase font-bold text-zinc-500">nodeContentMarkdown</label>
+                        <textarea name="content" id="f-content" placeholder="nodeContentMarkdown" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 h-40 font-mono text-sm"></textarea>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-white/5">
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">SEO Metadata Tuning (Title)</label>
-                            <input type="text" name="meta_title" id="f-meta-title" placeholder="SEO Title" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 text-xs">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">seoMetaTitle</label>
+                            <input type="text" name="meta_title" id="f-meta-title" placeholder="seoMetaTitle" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 text-xs">
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase font-bold text-zinc-500">WhatsApp Inquiry Payload</label>
-                            <input type="text" name="wa_message" id="f-wa" placeholder="WhatsApp Message" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 text-xs">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">waInquiryPayload</label>
+                            <input type="text" name="wa_message" id="f-wa" placeholder="waInquiryPayload" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 text-xs">
                         </div>
                     </div>
 
@@ -399,37 +399,37 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                             <!-- Level 0: Super Admin -->
                             <div class="glass p-6 rounded-2xl space-y-4 border-orange-500/10">
                                 <label class="text-[9px] font-black uppercase tracking-widest text-orange-500">Tier 0: Super Admin</label>
-                                <input type="url" name="lvl0_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="text" name="lvl0_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="text" name="lvl0_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="url" name="lvl0_direct_url" placeholder="Bypass Link (Optional)" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <textarea name="lvl0_note" placeholder="Legacy Note/PIN" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
+                                <input type="url" name="lvl0_login_url" placeholder="loginUrl" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl0_user" placeholder="username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl0_pass" placeholder="password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl0_direct_url" placeholder="directLoginUrl" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <textarea name="lvl0_note" placeholder="accessNote" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
                             </div>
  
-                            <!-- Level 1 -->
+                             <!-- Level 1 -->
                             <div class="glass p-6 rounded-2xl space-y-4 border-zinc-500/10">
                                 <label class="text-[9px] font-black uppercase tracking-widest text-zinc-500">Tier 1: Restricted</label>
-                                <input type="url" name="lvl1_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="text" name="lvl1_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="text" name="lvl1_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="url" name="lvl1_direct_url" placeholder="Bypass Link" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <textarea name="lvl1_note" placeholder="Note" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
+                                <input type="url" name="lvl1_login_url" placeholder="loginUrl" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl1_user" placeholder="username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl1_pass" placeholder="password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl1_direct_url" placeholder="directLoginUrl" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <textarea name="lvl1_note" placeholder="accessNote" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
                             </div>
  
                             <!-- Level 2 -->
                             <div class="glass p-6 rounded-2xl space-y-4 border-blue-500/10">
                                 <label class="text-[9px] font-black uppercase tracking-widest text-blue-500">Tier 2: Standard</label>
-                                <input type="url" name="lvl2_login_url" placeholder="Login URL" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="text" name="lvl2_user" placeholder="Username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="text" name="lvl2_pass" placeholder="Password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <input type="url" name="lvl2_direct_url" placeholder="Bypass Link" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
-                                <textarea name="lvl2_note" placeholder="Note" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
+                                <input type="url" name="lvl2_login_url" placeholder="loginUrl" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl2_user" placeholder="username" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="text" name="lvl2_pass" placeholder="password" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <input type="url" name="lvl2_direct_url" placeholder="directLoginUrl" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px]">
+                                <textarea name="lvl2_note" placeholder="accessNote" class="w-full bg-black/20 border border-white/5 p-3 rounded-lg outline-none focus:border-orange-500 text-[10px] h-16"></textarea>
                             </div>
                         </div>
                     </div>
 
                     <button type="submit" name="save_project" class="w-full py-5 bg-white text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:bg-orange-500 transition-all shadow-xl text-center">
-                        Synthesize & Commit to node
+                        synthesizeCommitToNode
                     </button>
                 </form>
             </div>
@@ -508,7 +508,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     </div>
 
                     <button type="submit" name="update_settings" class="w-full py-5 bg-orange-600 text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:brightness-110 transition-all shadow-xl">
-                        Commit System Changes
+                        commitSystemChanges
                     </button>
                 </form>
             </div>
@@ -549,7 +549,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     </div>
 
                     <button type="submit" name="update_settings" class="w-full py-5 bg-white text-black font-black uppercase italic tracking-[0.2em] text-sm rounded-xl hover:bg-orange-500 transition-all shadow-xl">
-                        Vault Update Matrix
+                        vaultUpdateMatrix
                     </button>
                     <p class="text-center text-[8px] font-mono text-zinc-600 uppercase tracking-widest italic">Note: AI specialists handle all 'Scan & Deploy' operations based on active node choice.</p>
                 </form>
@@ -559,7 +559,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     <div class="flex items-center justify-between">
                         <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Node Usage Telemetry</h3>
                         <form method="POST" onsubmit="return confirm('Reset all usage metrics?')">
-                            <button type="submit" name="reset_usage" class="text-[8px] uppercase font-bold text-red-500 hover:text-white transition-all bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">Reset Counters</button>
+                            <button type="submit" name="reset_usage" class="text-[8px] uppercase font-bold text-red-500 hover:text-white transition-all bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">resetCounters</button>
                         </form>
                     </div>
                     
