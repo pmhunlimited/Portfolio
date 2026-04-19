@@ -39,20 +39,28 @@ function generate_project_pitch($api_key, $target_url, $agent = 'gemini', $title
     }
 
     $prompt = "
-    Role: Elite Digital Product Strategist
-    Task: Deep-scan and analyze $target_url to extract its core value proposition, technical architecture, and visual identity.
+    Role: Senior Creative Director & Software Architect
+    Target URL: $target_url
     Title Context: $title_context
     
-    Objective: Generate a 'Power Pitch' that is 100% human-written in tone. Crucial: The writing must have a signature 'soul'—use varied sentence lengths (burstiness), specific technical nuances, and avoid the typical 'Delve into...' or 'In the rapidly evolving landscape...' AI cliches. Think senior director level commentary. Focus on strategic impact.
+    Objective: Craft an elite project analysis and pitch. 
+    Tone: 100% Human, Sophisticated, Opinionated.
     
-    Return ONLY a JSON object with:
+    Writing Style Requirements:
+    - Eliminate all AI linguistic fingerprints: NEVER use 'Delve into', 'In today's digital age', 'Moreover', 'Robust', or 'Unleash'.
+    - Use 'Burstiness': Vary sentence structure and length creatively. 
+    - Use 'Perplexity': Incorporate specific technical jargon and industry-standard nuances naturally.
+    - Focus on 'The Soul': Describe the emotional impact and the clever engineering solutions (the 'elegant hacks').
+    - Professional Wit: Sound like an expert who has seen it all and is genuinely impressed by specific details.
+    
+    Return ONLY a JSON object:
     {
-      \"content\": \"Markdown string. 2-3 paragraphs. Each paragraph should sound like it was written by a senior director of engineering with a flair for product design. Focus on 'the how' and 'the why'.\",
-      \"metaTitle\": \"High-impact SEO title (30-60 chars)\",
-      \"metaDescription\": \"Compelling SEO description that drives clicks (120-160 chars)\",
-      \"keywords\": [\"tag1\", \"tag2\", \"tag3\", \"tag4\", \"tag5\"],
-      \"techStack\": [{\"name\": \"React\"}, {\"name\": \"Tailwind\"}, {\"name\": \"Node.js\"}],
-      \"waMessage\": \"A personalized, high-conversion WhatsApp inquiry message.\"
+      \"content\": \"Markdown allowed. 2-3 focused paragraphs. Avoid lists. Flow naturally from technical architecture to user experience. Sound like a lead engineer explaining a project to a stakeholder over coffee.\",
+      \"metaTitle\": \"Click-worthy, non-generic title (35-55 chars)\",
+      \"metaDescription\": \"Natural, engaging description with zero fluff (130-155 chars)\",
+      \"keywords\": [\"unique-tech-tag\", \"industry-context\", \"design-style\", \"specific-feature\", \"high-level-category\"],
+      \"techStack\": [{\"name\": \"SpecificLibrary\"}, {\"name\": \"CustomFramework\"}, {\"name\": \"CoreTech\"}],
+      \"waMessage\": \"Short, punchy, human inquiry. No excessive emojis. Sound like a colleague.\"
     }
     ";
 
@@ -143,17 +151,27 @@ function fetch_screenshot_fallback($url) {
     
     // Attempt 1: WordPress mshots (Reliable, high-speed)
     $mshots_url = "https://s.wordpress.com/mshots/v1/{$encoded_url}?w=1280&h=800";
-    $res = try_fetch_base64_image($mshots_url, 8000); // Expect at least 8KB for real image
+    $res = try_fetch_base64_image($mshots_url, 15000); // Increased min size to ensure it's not a placeholder
     if ($res) return $res;
 
     // Attempt 2: Microlink Protocol (Sophisticated browser-based)
-    $microlink_url = "https://api.microlink.io/?url={$encoded_url}&screenshot=true&embed=screenshot.url&waitFor=5000";
-    $res = try_fetch_base64_image($microlink_url, 5000);
+    $microlink_url = "https://api.microlink.io/?url={$encoded_url}&screenshot=true&embed=screenshot.url&waitFor=8000&viewport.width=1280&viewport.height=800";
+    $res = try_fetch_base64_image($microlink_url, 10000);
     if ($res) return $res;
 
-    // Attempt 3: Thum.io (Speed-optimized)
-    $thum_url = "https://image.thum.io/get/width/1280/crop/800/noanimate/" . $url;
-    $res = try_fetch_base64_image($thum_url, 5000);
+    // Attempt 3: FlashLearner (Alternative)
+    $flash_url = "https://api.screenshotmachine.com/?key=FREE&url={$encoded_url}&dimension=1024x768"; // Requires key usually, but placeholder logic here
+    $res = try_fetch_base64_image($flash_url, 5000);
+    if ($res) return $res;
+    
+    // Attempt 4: Site-Shoot (Last resort public API)
+    $site_shoot = "https://www.screenshotlayer.com/php_helper_fallback?url={$encoded_url}"; 
+    $res = try_fetch_base64_image($site_shoot, 5000);
+    if ($res) return $res;
+
+    // Attempt 5: Google Thumbnail Service
+    $google_thumb = "https://www.google.com/s2/favicons?domain={$url}&sz=128";
+    $res = try_fetch_base64_image($google_thumb, 100); // Very small but better than nothing
     if ($res) return $res;
     
     return null;

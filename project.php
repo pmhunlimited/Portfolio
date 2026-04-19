@@ -96,9 +96,9 @@ $keywords = $key_stmt->fetchAll();
         .sharp-orange { color: var(--sharp-orange); }
         
         /* Iframe Frame Controls */
-        .frame-mobile { width: 375px; height: 667px; margin: 0 auto; border-radius: 40px; border: 12px solid #1a1a1a; }
-        .frame-tablet { width: 768px; height: 1024px; margin: 0 auto; border-radius: 30px; border: 12px solid #1a1a1a; }
-        .frame-desktop { width: 100%; height: 100%; border-radius: 0; border: none; }
+        .frame-mobile { width: 414px; height: 896px; margin: 0 auto; border-radius: 40px; border: 12px solid #1a1a1a; }
+        .frame-tablet { width: 1024px; height: 1366px; margin: 0 auto; border-radius: 30px; border: 12px solid #1a1a1a; }
+        .frame-desktop { width: 100%; height: 1080px; border-radius: 0; border: none; }
         .iframe-container { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); background: #000; overflow: hidden; position: relative; }
         .zoom-container { transition: transform 0.3s ease-out; transform-origin: top center; }
     </style>
