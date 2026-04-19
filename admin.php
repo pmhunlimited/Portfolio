@@ -575,7 +575,12 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
-                                <label class="text-[9px] uppercase font-bold text-zinc-400">Gemini AI Key (Node Alpha)</label>
+                                <label class="text-[9px] uppercase font-bold text-zinc-400">
+                                    Gemini AI Key (Node Alpha)
+                                    <?php if(empty($s['gemini_api_key']) && getenv('GEMINI_API_KEY')): ?>
+                                        <span class="text-green-500 lowercase font-mono ml-2">[system_free_tier_active]</span>
+                                    <?php endif; ?>
+                                </label>
                                 <input type="password" name="gemini_api_key" value="<?php echo htmlspecialchars($s['gemini_api_key'] ?? ''); ?>" placeholder="Enter Gemini Key (Leave empty for System Free Tier)" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 font-mono">
                             </div>
                             <div class="space-y-2">
@@ -591,7 +596,7 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                             <div class="space-y-2">
                                 <label class="text-[9px] uppercase font-bold text-orange-500">Default AI Dispatcher</label>
                                 <select name="default_ai_agent" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 uppercase font-black text-xs">
-                                    <option value="gemini" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'gemini' ? 'selected' : ''; ?>>AI ALPHA: GEMINI 1.5 PRO</option>
+                                    <option value="gemini" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'gemini' ? 'selected' : ''; ?>>AI ALPHA: GEMINI 3 FLASH (FREE TIER)</option>
                                     <option value="deepseek" <?php echo ($s['default_ai_agent'] ?? 'gemini') === 'deepseek' ? 'selected' : ''; ?>>AI BRAVO: DEEPSEEK V3</option>
                                 </select>
                             </div>
@@ -617,7 +622,10 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                         <div class="glass p-6 rounded-xl space-y-3 relative overflow-hidden group">
                             <div class="flex justify-between items-center relative z-10">
                                 <span class="text-[9px] uppercase font-bold text-zinc-500">Gemini (Node Alpha)</span>
-                                <span class="text-xs font-black text-orange-500" id="stat-gemini-scans">...</span>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="testPulse('gemini')" class="text-[7px] font-black uppercase text-orange-500/60 hover:text-orange-500 transition-colors tracking-widest px-2 py-0.5 border border-orange-500/20 rounded">testPulse</button>
+                                    <span class="text-xs font-black text-orange-500" id="stat-gemini-scans">...</span>
+                                </div>
                             </div>
                             <div class="text-[8px] uppercase font-mono text-zinc-600 tracking-tighter">Usage: Scans performed in current cycle</div>
                             <div class="absolute bottom-0 left-0 h-0.5 bg-orange-600 transition-all duration-1000" style="width: 0%" id="stat-gemini-bar"></div>
@@ -626,7 +634,10 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                         <div class="glass p-6 rounded-xl space-y-3 relative overflow-hidden group">
                             <div class="flex justify-between items-center relative z-10">
                                 <span class="text-[9px] uppercase font-bold text-zinc-500">DeepSeek (Node Bravo)</span>
-                                <span class="text-xs font-black text-blue-500" id="stat-deepseek-scans">...</span>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="testPulse('deepseek')" class="text-[7px] font-black uppercase text-blue-500/60 hover:text-blue-500 transition-colors tracking-widest px-2 py-0.5 border border-blue-500/20 rounded">testPulse</button>
+                                    <span class="text-xs font-black text-blue-500" id="stat-deepseek-scans">...</span>
+                                </div>
                             </div>
                             <div class="text-[8px] uppercase font-mono text-zinc-600 tracking-tighter" id="stat-deepseek-balance">Balance: Syncing telemetry...</div>
                             <div class="absolute bottom-0 left-0 h-0.5 bg-blue-600 transition-all duration-1000" style="width: 0%" id="stat-deepseek-bar"></div>
@@ -692,6 +703,32 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                 }
 
             } catch(e) { console.error('Stats Sync Error', e); }
+        }
+
+        async function testPulse(agent) {
+            const btn = event.currentTarget;
+            const originalText = btn.innerText;
+            btn.innerText = 'Pinging...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('api_ai.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ test_connection: true, agent: agent })
+                });
+                const data = await res.json();
+                if(data.status === 'success') {
+                    alert('SUCCESS: ' + data.message + '\nNode ' + agent.toUpperCase() + ' is responding normally.');
+                } else {
+                    alert('FAILURE: ' + (data.message || 'Node Timeout') + '\nCheck credentials in Integrations Vault.');
+                }
+            } catch(e) {
+                alert('CRITICAL: Pulse Request Failed');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         }
 
         async function generateAI() {

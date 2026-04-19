@@ -26,7 +26,7 @@ $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
 while($row = $stmt->fetch()) $settings[$row['setting_key']] = $row['setting_value'];
 
-// Statistics Protocol
+// Statistics & Connectivity Protocol
 if ($data['get_stats'] ?? false) {
     header('Content-Type: application/json');
     $stats = [
@@ -35,6 +35,28 @@ if ($data['get_stats'] ?? false) {
         'deepseek_balance' => check_deepseek_balance($settings['deepseek_api_key'] ?? '')
     ];
     echo json_encode($stats);
+    exit;
+}
+
+if ($data['test_connection'] ?? false) {
+    header('Content-Type: application/json');
+    $agent = $data['agent'] ?? 'gemini';
+    $api_key = ($agent === 'deepseek') ? ($settings['deepseek_api_key'] ?? '') : ($settings['gemini_api_key'] ?? '');
+    if ($agent === 'gemini' && empty($api_key)) $api_key = getenv('GEMINI_API_KEY');
+
+    if (empty($api_key)) {
+        echo json_encode(['status' => 'error', 'message' => 'API_KEY_MISSING']);
+        exit;
+    }
+
+    $test_prompt = "Say 'NODE_ALPHA_ACTIVE' if you are Gemini, or 'NODE_BRAVO_ACTIVE' if you are DeepSeek.";
+    $res = generate_project_pitch($api_key, 'https://google.com', $agent, $test_prompt);
+    
+    if (isset($res['error']) || isset($res['ai_error'])) {
+        echo json_encode(['status' => 'error', 'message' => $res['error'] ?? $res['ai_error']]);
+    } else {
+        echo json_encode(['status' => 'success', 'message' => 'SYSTEM_PING_OK']);
+    }
     exit;
 }
 

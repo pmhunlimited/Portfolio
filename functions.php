@@ -29,7 +29,7 @@ function generate_project_pitch($api_key, $target_url, $agent = 'gemini', $title
         $endpoint = "https://api.deepseek.com/chat/completions";
         $model = "deepseek-chat";
     } else {
-        $model = "gemini-1.5-flash";
+        $model = "gemini-3-flash-preview";
         $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$api_key}";
     }
 
