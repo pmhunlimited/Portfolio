@@ -22,25 +22,55 @@ $heroSubtext = $settings['heroSubtext'] ?? '';
 // Search & Filter Logic
 $filter = $_GET['filter'] ?? 'all';
 $search = $_GET['search'] ?? '';
+$tech_filter = $_GET['tech'] ?? [];
+if(!is_array($tech_filter)) $tech_filter = [$tech_filter];
 
-$sql = "SELECT * FROM projects WHERE 1=1";
+$sql = "SELECT DISTINCT p.* FROM projects p";
+if (!empty($tech_filter)) {
+    $sql .= " JOIN tech_stacks ts ON p.id = ts.project_id";
+}
+$sql .= " WHERE 1=1";
 $params = [];
 
 if ($filter !== 'all') {
-    $sql .= " AND project_type = ?";
+    $sql .= " AND p.project_type = ?";
     $params[] = $filter;
 }
 
 if ($search) {
-    $sql .= " AND (title LIKE ? OR content LIKE ?)";
+    $sql .= " AND (p.title LIKE ? OR p.content LIKE ?)";
     $params[] = "%$search%";
     $params[] = "%$search%";
 }
 
-$sql .= " ORDER BY created_at DESC";
+if (!empty($tech_filter)) {
+    $placeholders = implode(',', array_fill(0, count($tech_filter), '?'));
+    $sql .= " AND ts.name IN ($placeholders)";
+    foreach($tech_filter as $t) $params[] = $t;
+    // For "Narrow down" (Intersection), we check if the group count matches selected count
+    $sql .= " GROUP BY p.id HAVING COUNT(DISTINCT ts.name) = ?";
+    $params[] = count($tech_filter);
+}
+
+$sql .= " ORDER BY p.created_at DESC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $projects = $stmt->fetchAll();
+
+// Fetch all project tech stacks for display in cards
+$project_ids = array_column($projects, 'id');
+$tech_map = [];
+if (!empty($project_ids)) {
+    $placeholders = implode(',', array_fill(0, count($project_ids), '?'));
+    $stmt = $pdo->prepare("SELECT project_id, name FROM tech_stacks WHERE project_id IN ($placeholders)");
+    $stmt->execute($project_ids);
+    while ($row = $stmt->fetch()) {
+        $tech_map[$row['project_id']][] = $row['name'];
+    }
+}
+
+// Fetch all technologies for the filter UI
+$all_techs = $pdo->query("SELECT DISTINCT name FROM tech_stacks ORDER BY name ASC")->fetchAll(PDO::FETCH_COLUMN);
 
 // Hero Nodes Prioritization: Pinned -> Latest (Max 4)
 $hero_projects = $pdo->query("SELECT * FROM projects WHERE is_pinned = 1 ORDER BY created_at DESC LIMIT 4")->fetchAll();
@@ -169,22 +199,52 @@ if (count($hero_projects) < 4) {
 
         <!-- Project Grid -->
         <section class="space-y-12">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
-                <div class="flex flex-wrap gap-4">
-                    <?php foreach(['all', 'web', 'app'] as $t): ?>
-                    <a href="?filter=<?php echo $t; ?>&search=<?php echo htmlspecialchars($search); ?>" 
-                       class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all <?php echo $filter === $t ? 'bg-orange-600 text-black shadow-lg shadow-orange-600/20' : 'glass text-zinc-500 hover:text-white'; ?>">
-                        <?php echo $t; ?>
-                    </a>
-                    <?php endforeach; ?>
+            <div class="space-y-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div class="flex flex-wrap gap-4">
+                        <?php foreach(['all', 'web', 'app'] as $t): ?>
+                        <a href="?filter=<?php echo $t; ?>&search=<?php echo htmlspecialchars($search); ?>&<?php echo http_build_query(['tech' => $tech_filter]); ?>" 
+                           class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all <?php echo $filter === $t ? 'bg-orange-600 text-black shadow-lg shadow-orange-600/20' : 'glass text-zinc-500 hover:text-white'; ?>">
+                            <?php echo $t; ?>
+                        </a>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <form method="GET" class="relative group">
+                        <input type="hidden" name="filter" value="<?php echo $filter; ?>">
+                        <?php foreach($tech_filter as $t): ?>
+                            <input type="hidden" name="tech[]" value="<?php echo htmlspecialchars($t); ?>">
+                        <?php endforeach; ?>
+                        <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="searchActiveNodes..." 
+                               class="bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-orange-500 transition-all font-mono text-[10px] w-64 uppercase">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                    </form>
                 </div>
 
-                <form method="GET" class="relative group">
-                    <input type="hidden" name="filter" value="<?php echo $filter; ?>">
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="searchActiveNodes..." 
-                           class="bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-orange-500 transition-all font-mono text-[10px] w-64 uppercase">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-                </form>
+                <!-- Strategic Tech Stack Filter -->
+                <?php if(!empty($all_techs)): ?>
+                <div class="glass p-6 rounded-[24px] border-white/5 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500">Strategic Tech Filter</div>
+                        <?php if(!empty($tech_filter)): ?>
+                            <a href="?filter=<?php echo $filter; ?>&search=<?php echo htmlspecialchars($search); ?>" class="text-[8px] font-mono text-orange-500 uppercase hover:text-white transition-colors">Clear All Filters</a>
+                        <?php endif; ?>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <?php foreach($all_techs as $tech): 
+                            $is_active = in_array($tech, $tech_filter);
+                            $new_techs = $is_active ? array_diff($tech_filter, [$tech]) : array_merge($tech_filter, [$tech]);
+                            $query = http_build_query(['filter' => $filter, 'search' => $search, 'tech' => $new_techs]);
+                        ?>
+                        <a href="?<?php echo $query; ?>" 
+                           class="px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all 
+                           <?php echo $is_active ? 'bg-orange-600 border-orange-600 text-black shadow-lg shadow-orange-600/10' : 'bg-white/2 border-white/5 text-zinc-500 hover:border-white/20 hover:text-white'; ?>">
+                            <?php echo $tech; ?>
+                        </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -196,9 +256,21 @@ if (count($hero_projects) < 4) {
                     <div class="aspect-video rounded-xl overflow-hidden mb-4 relative bg-black/40">
                         <?php echo render_media($proj['thumbnail_url']); ?>
                     </div>
-                    <div class="space-y-2">
-                        <h3 class="font-black text-lg uppercase truncate italic leading-none"><?php echo $proj['title']; ?></h3>
-                        <div class="flex justify-between items-center text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">
+                    <div class="space-y-3">
+                        <h3 class="font-black text-lg uppercase truncate italic leading-none pt-1"><?php echo $proj['title']; ?></h3>
+                        
+                        <?php if(isset($tech_map[$proj['id']])): ?>
+                        <div class="flex flex-wrap gap-1">
+                            <?php foreach(array_slice($tech_map[$proj['id']], 0, 3) as $t): ?>
+                            <span class="text-[7px] font-black uppercase px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-zinc-500"><?php echo $t; ?></span>
+                            <?php endforeach; ?>
+                            <?php if(count($tech_map[$proj['id']]) > 3): ?>
+                                <span class="text-[7px] font-black uppercase px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-zinc-500">+<?php echo count($tech_map[$proj['id']]) - 3; ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+
+                        <div class="flex justify-between items-center text-[10px] font-mono text-zinc-500 uppercase tracking-tighter pt-2 border-t border-white/5">
                             <span><?php echo $proj['project_type']; ?> Node</span>
                             <span class="group-hover:text-orange-500 transition-colors">Access Portal →</span>
                         </div>

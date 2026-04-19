@@ -179,6 +179,30 @@ if (isset($_POST['save_project'])) {
     
     $project_id = $pdo->lastInsertId();
 
+    // Handle Tech Stack
+    if (!empty($_POST['tech_stack'])) {
+        $stacks = explode(',', $_POST['tech_stack']);
+        foreach ($stacks as $s) {
+            $s = trim($s);
+            if (!empty($s)) {
+                $stmt = $pdo->prepare("INSERT INTO tech_stacks (project_id, name) VALUES (?, ?)");
+                $stmt->execute([$project_id, $s]);
+            }
+        }
+    }
+
+    // Handle Keywords
+    if (!empty($_POST['keywords'])) {
+        $keys = explode(',', $_POST['keywords']);
+        foreach ($keys as $k) {
+            $k = trim($k);
+            if (!empty($k)) {
+                $stmt = $pdo->prepare("INSERT INTO keywords (project_id, keyword) VALUES (?, ?)");
+                $stmt->execute([$project_id, $k]);
+            }
+        }
+    }
+
     // Handle Gallery (Up to 5)
     if (isset($_POST['gallery_images']) && is_array($_POST['gallery_images'])) {
         foreach ($_POST['gallery_images'] as $order => $media_url) {
@@ -200,10 +224,25 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// Database Maintenance: Ensure LONGTEXT for Base64 screenshots
+// Database Maintenance: Schema Synchronization Protocol
 try {
+    // Media handling consistency
     $pdo->exec("ALTER TABLE projects MODIFY thumbnail_url LONGTEXT");
     $pdo->exec("ALTER TABLE project_gallery MODIFY media_url LONGTEXT");
+    
+    // Missing Core Metadata & Pulse Metrics
+    $columns_to_add = [
+        "lvl0_login_url VARCHAR(500)", "lvl0_user VARCHAR(255)", "lvl0_pass VARCHAR(255)", "lvl0_direct_url VARCHAR(500)", "lvl0_note TEXT",
+        "lvl1_login_url VARCHAR(500)", "lvl1_user VARCHAR(255)", "lvl1_pass VARCHAR(255)", "lvl1_direct_url VARCHAR(500)", "lvl1_note TEXT",
+        "lvl2_login_url VARCHAR(500)", "lvl2_user VARCHAR(255)", "lvl2_pass VARCHAR(255)", "lvl2_direct_url VARCHAR(500)", "lvl2_note TEXT",
+        "meta_title VARCHAR(255)", "wa_message TEXT", "speed INT DEFAULT 98", "is_pinned BOOLEAN DEFAULT FALSE"
+    ];
+    
+    foreach ($columns_to_add as $col) {
+        try {
+            $pdo->exec("ALTER TABLE projects ADD COLUMN $col");
+        } catch (Exception $e) { /* Column likely already exists, bypassing protocol */ }
+    }
 } catch(Exception $e) {}
 
 $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetchAll();
@@ -354,6 +393,17 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     <div class="space-y-2">
                         <label class="text-[9px] uppercase font-bold text-zinc-500">nodeContentMarkdown</label>
                         <textarea name="content" id="f-content" placeholder="nodeContentMarkdown" class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 h-40 font-mono text-sm"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-white/5">
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">strategicTechStack (Comma separated)</label>
+                            <input type="text" name="tech_stack" id="f-tech" placeholder="React, Node.js, PHP..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 text-xs">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[9px] uppercase font-bold text-zinc-500">intelligenceKeywords (Comma separated)</label>
+                            <input type="text" name="keywords" id="f-keywords" placeholder="web3, blockchain, saas..." class="w-full bg-black/40 border border-white/10 p-4 rounded-xl outline-none focus:border-orange-500 text-xs">
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-white/5">
@@ -678,20 +728,26 @@ $projects = $pdo->query("SELECT * FROM projects ORDER BY created_at DESC")->fetc
                     document.getElementById('f-thumb').value = data.screenshot;
                 }
 
-                // AI Fields
-                if(deploymentMode === 'auto') {
-                    if(data.content) document.getElementById('f-content').value = data.content;
-                    if(data.metaTitle) document.getElementById('f-meta-title').value = data.metaTitle;
-                    if(data.metaTitle && !title) document.getElementById('f-title').value = data.metaTitle;
-                    if(data.waMessage) document.getElementById('f-wa').value = data.waMessage;
-                    
-                    // Tech Stack population
-                    if (data.techStack && data.techStack.length > 0) {
-                        const stack = data.techStack.map(s => s.name).join(', ');
-                        document.getElementById('f-content').value += "\n\n### Strategic Tech Stack\n" + stack;
-                    }
-                    alert('Autonomous Analysis Complete. Node successfully reconfigured.');
-                } else {
+                    // AI Fields
+                    if(deploymentMode === 'auto') {
+                        if(data.content) document.getElementById('f-content').value = data.content;
+                        if(data.metaTitle) document.getElementById('f-meta-title').value = data.metaTitle;
+                        if(data.metaTitle && !title) document.getElementById('f-title').value = data.metaTitle;
+                        if(data.waMessage) document.getElementById('f-wa').value = data.waMessage;
+                        
+                        // Tech Stack population
+                        if (data.techStack && data.techStack.length > 0) {
+                            const stack = data.techStack.map(s => s.name).join(', ');
+                            document.getElementById('f-tech').value = stack;
+                        }
+
+                        // Keywords population
+                        if (data.keywords && data.keywords.length > 0) {
+                            document.getElementById('f-keywords').value = data.keywords.join(', ');
+                        }
+
+                        alert('Autonomous Analysis Complete. Node successfully reconfigured.');
+                    } else {
                     alert('Vital Scan Complete. Performance stats and screenshot captured.');
                 }
             } catch(e) {
